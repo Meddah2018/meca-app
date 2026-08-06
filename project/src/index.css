@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #2a3142;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
+    url('/7b4133f5-627c-4d61-8943-42199cb8b49d copy.jpg');
+  background-repeat: repeat;
+  background-attachment: fixed;
+  background-size: auto;
+}
+
+/* Cards: transparent interior, visible colored border only */
+.bg-white {
+  background-color: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 2px solid #b91c1c !important;
+  color: #0f172a;
+}
+
+/* Text on cards: vivid red for headings, golden yellow for secondary */
+.bg-white .text-slate-900,
+.bg-white .text-slate-800,
+.bg-white .text-slate-700 {
+  color: #b91c1c !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+.bg-white .text-slate-600,
+.bg-white .text-slate-500 {
+  color: #b45309 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+.bg-white .text-slate-400 {
+  color: #ca8a04 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+/* Headings and bold text inside cards also get red */
+.bg-white h1,
+.bg-white h2,
+.bg-white h3,
+.bg-white h4,
+.bg-white h5,
+.bg-white h6,
+.bg-white .font-bold,
+.bg-white .font-semibold {
+  color: #b91c1c !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+/* Sidebar stays dark */
+aside {
+  background-color: rgba(10, 12, 20, 0.75) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Top nav bar on mobile */
+header, .bg-white.border-b {
+  background-color: rgba(10, 12, 20, 0.75) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Dropdowns and modals stay mostly opaque for readability */
+[class*="absolute"][class*="shadow-lg"],
+[class*="shadow-2xl"] {
+  background-color: rgba(18, 22, 36, 0.95) !important;
+  color: #f1f5f9;
+}
+
+/* Input fields */
+input, select, textarea {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #f1f5f9 !important;
+}
+input::placeholder, textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Borders */
+.border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.border-slate-100 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Status badges: transparent backgrounds, keep colored text */
+.bg-amber-50, .bg-amber-100 {
+  background-color: transparent !important;
+}
+.bg-green-50, .bg-green-100 {
+  background-color: transparent !important;
+}
+.bg-blue-50, .bg-blue-100 {
+  background-color: transparent !important;
+}
+.bg-red-50, .bg-red-100 {
+  background-color: transparent !important;
+}
+.bg-slate-50, .bg-slate-100 {
+  background-color: transparent !important;
+}
+.bg-orange-50, .bg-orange-100 {
+  background-color: transparent !important;
+}
+.bg-yellow-50, .bg-yellow-100 {
+  background-color: transparent !important;
+}
+.bg-emerald-50, .bg-emerald-100 {
+  background-color: transparent !important;
+}
+
+/* Keep badge text colors bright on dark background */
+.text-amber-700, .text-amber-600 { color: #fbbf24 !important; }
+.text-green-700, .text-green-600 { color: #4ade80 !important; }
+.text-blue-700, .text-blue-600 { color: #60a5fa !important; }
+.text-red-700, .text-red-600 { color: #f87171 !important; }
+.text-orange-700, .text-orange-600 { color: #fb923c !important; }
+.text-emerald-700, .text-emerald-600 { color: #4ade80 !important; }
+
+/* Status badge pills: explicit colored border, transparent bg */
+span[class*="rounded-full"][class*="bg-amber-50"] {
+  border: 1.5px solid #fbbf24 !important;
+  background-color: transparent !important;
+  color: #fbbf24 !important;
+}
+span[class*="rounded-full"][class*="bg-green-50"] {
+  border: 1.5px solid #4ade80 !important;
+  background-color: transparent !important;
+  color: #4ade80 !important;
+}
+span[class*="rounded-full"][class*="bg-blue-50"] {
+  border: 1.5px solid #60a5fa !important;
+  background-color: transparent !important;
+  color: #60a5fa !important;
+}
+span[class*="rounded-full"][class*="bg-red-50"] {
+  border: 1.5px solid #f87171 !important;
+  background-color: transparent !important;
+  color: #f87171 !important;
+}
+span[class*="rounded-full"][class*="bg-slate-100"] {
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: transparent !important;
+  color: #cbd5e1 !important;
+}
+span[class*="rounded-full"][class*="bg-orange-50"] {
+  border: 1.5px solid #fb923c !important;
+  background-color: transparent !important;
+  color: #fb923c !important;
+}
+
+/* Stat card icon containers: explicit colored border by text color */
+.bg-white .w-9.h-9.rounded-lg.text-blue-600,
+.bg-white .w-10.h-10.rounded-lg.text-blue-600,
+.bg-white .w-11.h-11.rounded-lg.text-blue-600 {
+  border: 2px solid #60a5fa !important;
+  background-color: transparent !important;
+}
+.bg-white .w-9.h-9.rounded-lg.text-amber-600,
+.bg-white .w-10.h-10.rounded-lg.text-amber-600,
+.bg-white .w-11.h-11.rounded-lg.text-amber-600 {
+  border: 2px solid #fbbf24 !important;
+  background-color: transparent !important;
+}
+.bg-white .w-9.h-9.rounded-lg.text-green-600,
+.bg-white .w-10.h-10.rounded-lg.text-green-600,
+.bg-white .w-11.h-11.rounded-lg.text-green-600 {
+  border: 2px solid #4ade80 !important;
+  background-color: transparent !important;
+}
+.bg-white .w-9.h-9.rounded-lg.text-orange-600,
+.bg-white .w-10.h-10.rounded-lg.text-orange-600,
+.bg-white .w-11.h-11.rounded-lg.text-orange-600 {
+  border: 2px solid #fb923c !important;
+  background-color: transparent !important;
+}
+.bg-white .w-9.h-9.rounded-lg.text-slate-700,
+.bg-white .w-10.h-10.rounded-lg.text-slate-700,
+.bg-white .w-11.h-11.rounded-lg.text-slate-700 {
+  border: 2px solid #cbd5e1 !important;
+  background-color: transparent !important;
+}
+.bg-white .w-9.h-9.rounded-lg.text-indigo-600,
+.bg-white .w-10.h-10.rounded-lg.text-indigo-600,
+.bg-white .w-11.h-11.rounded-lg.text-indigo-600 {
+  border: 2px solid #818cf8 !important;
+  background-color: transparent !important;
+}
+.bg-white .w-9.h-9.rounded-lg.text-slate-500,
+.bg-white .w-10.h-10.rounded-lg.text-slate-500,
+.bg-white .w-11.h-11.rounded-lg.text-slate-500 {
+  border: 2px solid #94a3b8 !important;
+  background-color: transparent !important;
+}
+
+/* Stat card colored borders (override global .bg-white red border) */
+.bg-white.border-blue-300 { border-color: #60a5fa !important; }
+.bg-white.border-amber-300 { border-color: #fbbf24 !important; }
+.bg-white.border-green-300 { border-color: #4ade80 !important; }
+.bg-white.border-orange-300 { border-color: #fb923c !important; }
+.bg-white.border-slate-300 { border-color: #94a3b8 !important; }
+.bg-white.border-indigo-300 { border-color: #818cf8 !important; }
+
+/* Mobile drawer panel: solid white background, black text */
+.drawer-panel {
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.drawer-panel,
+.drawer-panel * {
+  color: #000000 !important;
+}
+.drawer-panel .text-blue-600,
+.drawer-panel .text-amber-600,
+.drawer-panel .text-green-600,
+.drawer-panel .text-orange-600,
+.drawer-panel .text-indigo-600,
+.drawer-panel .text-slate-700,
+.drawer-panel .text-slate-600,
+.drawer-panel .text-slate-500,
+.drawer-panel .text-slate-400 {
+  color: #000000 !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
