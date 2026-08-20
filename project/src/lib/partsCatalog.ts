@@ -13,15 +13,11 @@ export const PART_CATEGORIES: PartCategory[] = [
   { id: 'freinage', label: 'Freinage' },
   { id: 'electricite', label: 'Électricité' },
   { id: 'electronique', label: 'Électronique' },
-  { id: 'refroidissement', label: 'Refroidissement' },
   { id: 'climatisation', label: 'Climatisation' },
   { id: 'carrosserie', label: 'Carrosserie' },
   { id: 'eclairage', label: 'Éclairage' },
   { id: 'echappement', label: 'Échappement' },
   { id: 'filtration', label: 'Filtration' },
-  { id: 'lubrifiants', label: 'Lubrifiants et consommables' },
-  { id: 'roues_pneumatiques', label: 'Roues et pneumatiques' },
-  { id: 'accessoires', label: 'Accessoires' },
   { id: 'autres', label: 'Autres' },
 ];
 
@@ -38,12 +34,22 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Volant moteur', 'Butée de débrayage', 'Capteur de position de vilebrequin', 'Capteur d\'arbre à cames',
     'Son de lambda', 'Sonde lambda', 'Capteur de pression d\'huile', 'Capteur de température d\'huile',
     'Biellette de réglage', 'Couvercle de carter', 'Joint de vilebrequin avant', 'Joint de vilebrequin arrière',
+    'Turbocompresseur', 'Actionneur de turbo', 'Wastegate', 'Vanne EGR', 'Refroidisseur EGR',
+    'Boîtier papillon', 'Corps de papillon', 'Reniflard d\'huile', 'Clapet de reniflard',
+    'Support moteur', 'Silentbloc moteur', 'Poulie de vilebrequin', 'Poulie d\'arbre à cames', 'Poulie damper',
+    'Courroie d\'accessoires', 'Galet tendeur d\'accessoires', 'Galet enrouleur', 'Chemise de cylindre',
+    'Chapeau de bielle', 'Pompe à essence', 'Sonde de température moteur', 'Joint de carter d\'huile', 'Pipe d\'eau',
+    'Pompe à eau', 'Thermostat', 'Calorstat', 'Joint de thermostat', 'Joint de pompe à eau',
+    'Sonde de température d\'eau', 'Échangeur eau-huile',
+    'Durit de refroidissement', 'Durit supérieure', 'Durit inférieure', 'Durit de chauffage',
   ],
   embrayage: [
     'Kit d\'embrayage', 'Disque d\'embrayage', 'Plateau de pression', 'Butée d\'embrayage', 'Butée hydraulique',
     'Volant moteur bi-masse', 'Cable d\'embrayage', 'Émetteur d\'embrayage', 'Récepteur d\'embrayage',
     'Fourchette de débrayage', 'Roulement de butée', 'Disque d\'embrayage renforcé', 'Plateau d\'embrayage',
     'Kit embrayage double', 'Maître cylindre d\'embrayage', 'Volant moteur simple', 'Rayure de disque',
+    'Roulement pilote', 'Palier de butée', 'Cylindre récepteur d\'embrayage', 'Réservoir de liquide d\'embrayage',
+    'Durit d\'embrayage', 'Ressort de diaphragme', 'Actionneur d\'embrayage', 'Pompe d\'embrayage',
   ],
   boite_vitesses: [
     'Boîte de vitesses manuelle', 'Boîte de vitesses automatique', 'Arbre primaire', 'Arbre secondaire',
@@ -59,6 +65,8 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Pignon de différentiel', 'Satellite de différentiel', 'Boîtier de différentiel', 'Roulement de différentiel',
     'Demi-arbre', 'Fusée de roue', 'Moyeu de roue', 'Roulement de moyeu', 'Joint de moyeu', 'Goupille de cardan',
     'Bague d\'arbre', 'Support de transmission', 'Silentbloc de transmission', 'Arbre intermédiaire',
+    'Soufflet de cardan avant', 'Soufflet de cardan arrière', 'Kit de soufflet de cardan', 'Joint spi de transmission',
+    'Cache-poussière de cardan', 'Différentiel avant', 'Différentiel arrière', 'Pont arrière', 'Roulement de différentiel avant',
   ],
   suspension: [
     'Amortisseur avant', 'Amortisseur arrière', 'Appui de suspension', 'Axe de suspension', 'Ressort de suspension',
@@ -68,6 +76,8 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Amortisseur à gaz', 'Amortisseur pneumatique', 'Amortisseur réglable', 'Coupelle d\'amortisseur',
     'Coupelle de ressort', 'Bague de suspension', 'Axe de bras', 'Chape de suspension', 'Étrier de suspension',
     'Butée de suspension', 'Butée d\'amortisseur', 'Buteur de suspension', 'Roulement de suspension',
+    'Jambe de force avant', 'Jambe de force arrière', 'Cartouche d\'amortisseur', 'Kit de réparation de jambe de force',
+    'Ressort pneumatique', 'Barre de torsion', 'Traverse de suspension', 'Berceau moteur', 'Palier de suspension',
   ],
   direction: [
     'Crémaillère de direction', 'Colonne de direction', 'Volant de direction', 'Joint de direction',
@@ -75,6 +85,10 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Pompe de direction assistée', 'Réservoir de direction assistée', 'Tuyau de direction assistée', 'Durit de direction',
     'Capteur d\'angle de direction', 'Cardan de direction', 'Arbre de direction', 'Support de crémaillère',
     'Roulement de colonne', 'Kit de crémaillère', 'Tête de rotule', 'Rotule de bielle', 'Bielle de barre stabilisatrice',
+    'Moteur de direction assistée électrique', 'Calculateur de direction assistée', 'Soufflet de crémaillère',
+    'Kit de soufflets de crémaillère', 'Joint de crémaillère', 'Biellette de direction', 'Embout de biellette',
+    'Coussinet de crémaillère', 'Poulie de pompe de direction assistée', 'Contacteur tournant d\'airbag',
+    'Commodo de direction', 'Antivol de direction',
   ],
   freinage: [
     'Plaquettes de frein avant', 'Plaquettes de frein arrière', 'Disque de frein avant', 'Disque de frein arrière',
@@ -84,6 +98,8 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Levier de frein à main', 'Disque de frein ventilé', 'Disque de frein plein', 'Kit de plaquettes', 'Garniture de frein',
     'Segment de frein', 'Ressort de segment', 'Axe de segment', 'Cylindre récepteur', 'Correcteur de freinage',
     'Compensateur de freinage', 'Vanne de freinage', 'Pédale de frein', 'Support d\'étrier', 'Chape d\'étrier',
+    'Bloc ABS', 'Capteur ABS avant', 'Capteur ABS arrière', 'Pompe ABS', 'Moteur de frein de stationnement électrique',
+    'Vis de purge', 'Kit de réparation d\'étrier', 'Piston d\'étrier', 'Joint d\'étrier', 'Liquide de frein',
   ],
   electricite: [
     'Alternateur', 'Démarreur', 'Bobine d\'allumage', 'Bobine d\'allumage avant', 'Bobine d\'allumage arrière',
@@ -102,19 +118,13 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Capteur de luminosité', 'Capteur d\'angle de volant', 'Capteur d\'accélération', 'Capteur de choc', 'Capteur de présence',
     'Module d\'allumage', 'Module de puissance', 'Transistor de puissance', 'Diode', 'Résistance', 'Condensateur',
   ],
-  refroidissement: [
-    'Radiateur de refroidissement', 'Radiateur de chauffage', 'Vase d\'expansion', 'Bouchon de vase d\'expansion',
-    'Pompe à eau', 'Thermostat', 'Calorstat', 'Joint de thermostat', 'Joint de pompe à eau', 'Durit de refroidissement',
-    'Durit supérieure', 'Durit inférieure', 'Durit de chauffage', 'Ventilateur de refroidissement', 'Visco-coupleur',
-    'Moteur de ventilateur', 'Sonde de température d\'eau', 'Radiateur d\'huile', 'Échangeur eau-huile', 'Échangeur air-eau',
-    'Bouchon de radiateur', 'Joint de radiateur', 'Support de radiateur', 'Fixation de radiateur', 'Cale de ventilateur',
-  ],
   climatisation: [
     'Compresseur de climatisation', 'Condenseur de climatisation', 'Évaporateur de climatisation', 'Filtre d\'habitacle',
     'Filtre à pollen', 'Vase de climatisation', 'Détendeur de climatisation', 'Sélecteur de climatisation', 'Capteur de pression',
     'Sonde de température de climatisation', 'Ventilateur de climatisation', 'Moteur de ventilation', 'Résistance de ventilation',
     'Commande de climatisation', 'Tableau de commande', 'Durit de climatisation', 'Tuyau de climatisation', 'Joint de compresseur',
     'Huile de climatisation', 'Recharge de climatisation', 'Bouteille déshydratante', 'Pressostat', 'Electrovanne de climatisation',
+    'Ventilateur de refroidissement', 'Moteur de ventilateur', 'Visco-coupleur', 'Cale de ventilateur', 'Échangeur air-eau',
   ],
   carrosserie: [
     'Aile avant gauche', 'Aile avant droite', 'Aile arrière gauche', 'Aile arrière droite', 'Capot moteur', 'Capot de coffre',
@@ -125,6 +135,8 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Joint de coffre', 'Joint de capot', 'Joint de pare-brise', 'Pare-brise', 'Lunette arrière', 'Vitre latérale', 'Vitre de porte',
     'Moulure de porte', 'Moulure de pare-chocs', 'Insert de carrosserie', 'Spoiler avant', 'Spoiler arrière', 'Becquet',
     'Marche-pied', 'Grille de protection', 'Couvercle de réservoir', 'Trapin', 'Tapis de coffre',
+    'Radiateur de refroidissement', 'Radiateur de chauffage', 'Vase d\'expansion', 'Bouchon de vase d\'expansion',
+    'Bouchon de radiateur', 'Joint de radiateur', 'Support de radiateur', 'Fixation de radiateur',
   ],
   eclairage: [
     'Phare avant gauche', 'Phare avant droit', 'Phare antibrouillard avant', 'Phare antibrouillard arrière', 'Feu arrière gauche',
@@ -147,33 +159,13 @@ export const PARTS_BY_CATEGORY: Record<string, string[]> = {
     'Filtre à pollen', 'Filtre de climatisation', 'Filtre de boîte', 'Filtre de direction assistée', 'Filtre de lave-glace',
     'Filtre de réservoir', 'Filtre de pompe', 'Filtre de retour', 'Filtre de gicleur', 'Filtre de carburateur', 'Filtre de purge',
   ],
-  lubrifiants: [
-    'Huile moteur', 'Huile de boîte', 'Huile de direction assistée', 'Huile de frein', 'Liquide de refroidissement',
-    'Liquide de frein', 'Liquide de refroidissement', 'Liquide de lave-glace', 'Graisse', 'Graisse de roulement',
-    'Additif moteur', 'Additif de carburant', 'Additif de FAP', 'Additif d\'huile', 'Nettoyant de carburant', 'Nettoyant d\'injecteur',
-    'Nettoyant de carrosserie', 'Nettoyant de jante', 'Produit de polissage', 'Cire de carrosserie', 'Dégraissant',
-  ],
-  roues_pneumatiques: [
-    'Pneu avant gauche', 'Pneu avant droit', 'Pneu arrière gauche', 'Pneu arrière droit', 'Pneu de secours', 'Jante avant',
-    'Jante arrière', 'Jante en tôle', 'Jante en aluminium', 'Enjoliveur', 'Bouchon de jante', 'Valve de pneu', 'Valve de gonflage',
-    'Capteur de pression de pneu', 'Capteur TPMS', 'Boulon de roue', 'Écrou de roue', 'Anti-vol de roue', 'Clé de roue', 'Croix de roue',
-    'Cric', 'Roue de secours', 'Roue de secours temporaire', 'Kit de réparation de pneu', 'Compressoir de pneu', 'Mousse de pneu',
-  ],
-  accessoires: [
-    'Tapis de sol', 'Tapis de sol avant', 'Tapis de sol arrière', 'Housses de siège', 'Housse de siège avant', 'Housse de siège arrière',
-    'Support de téléphone', 'Chargeur de téléphone', 'Câble de charge', 'Câble USB', 'Prise USB', 'Prise allume-cigare', 'Adaptateur',
-    'Rangement de coffre', 'Filet de coffre', 'Barre de toit', 'Barres de toit', 'Porte-vélo', 'Porte-skis', 'Attelage', 'Faisceau d\'attelage',
-    'Bavette', 'Bavette avant', 'Bavette arrière', 'Tapis de coffre', 'Organisateur de coffre', 'Boîte de rangement', 'Support de tablette',
-    'Parasol', 'Par-soleil', 'Couvre-volant', 'Couvre-tableau de bord', 'Désodorisant', 'Désodorisant de voiture', 'Stylo de retouche',
-    'Kit de réparation de carrosserie', 'Kit de retouche peinture', 'Bombe de peinture', 'Chiffon microfibre', 'Éponge',
-  ],
   autres: [
     'Pièce sur mesure', 'Pièce de réparation', 'Pièce d\'occasion', 'Pièce neuve', 'Pièce adaptable', 'Pièce d\'origine',
     'Autre pièce', 'Pièce non répertoriée',
   ],
 };
 
-export function searchParts(categoryId: string, query: string, limit = 20): string[] {
+export function searchParts(categoryId: string, query: string, limit = 200): string[] {
   const parts = PARTS_BY_CATEGORY[categoryId] ?? [];
   if (!query.trim()) return parts.slice(0, limit);
   const normalized = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');

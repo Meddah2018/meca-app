@@ -17,6 +17,10 @@ body {
   background-size: auto;
 }
 
+[dir='rtl'] body {
+  font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 /* Cards: transparent interior, visible colored border only */
 .bg-white {
   background-color: transparent !important;
@@ -249,4 +253,50 @@ span[class*="rounded-full"][class*="bg-orange-50"] {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.35);
+}
+
+/* Request creation/detail/description modals: readable text on the dark modal background */
+.readable-modal,
+.readable-modal .text-slate-900,
+.readable-modal .text-slate-800,
+.readable-modal .text-slate-700,
+.readable-modal h1,
+.readable-modal h2,
+.readable-modal h3,
+.readable-modal .font-bold,
+.readable-modal .font-semibold {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+.readable-modal .text-slate-600,
+.readable-modal .text-slate-500,
+.readable-modal .text-slate-400 {
+  color: #fde047 !important;
+  text-shadow: none !important;
+}
+
+/* Audio recording/playback zones: keep a clearly visible light background
+   even though bg-slate-50/bg-red-50/bg-orange-50 are neutralized above. */
+.audio-zone {
+  background-color: #f1f5f9 !important;
+}
+.audio-zone .text-slate-500,
+.audio-zone .text-slate-600 {
+  color: #64748b !important;
+  text-shadow: none !important;
+}
+
+/* Language switcher dropdown: force a solid light background with black text
+   so the choices stay readable — overrides the generic dark absolute/shadow-lg
+   panel rule above, which would otherwise render black text on a near-black
+   background here. */
+#language-switcher-panel {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+#language-switcher-panel button {
+  color: #000000 !important;
+}
+#language-switcher-panel .bg-slate-100 {
+  background-color: #f1f5f9 !important;
 }

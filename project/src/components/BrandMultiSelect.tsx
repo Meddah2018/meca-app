@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, X, Check } from 'lucide-react';
 import { VEHICLE_CATALOG, normalize, type VehicleBrand } from '@/lib/vehiclesCatalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BrandMultiSelectProps {
   selected: string[];
@@ -8,7 +9,8 @@ interface BrandMultiSelectProps {
   placeholder?: string;
 }
 
-export default function BrandMultiSelect({ selected, onChange, placeholder = 'Rechercher une marque...' }: BrandMultiSelectProps) {
+export default function BrandMultiSelect({ selected, onChange, placeholder }: BrandMultiSelectProps) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
@@ -72,14 +74,14 @@ export default function BrandMultiSelect({ selected, onChange, placeholder = 'Re
           return (
             <span
               key={brandId}
-              className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium pl-2.5 pr-1 py-1 rounded-full"
+              className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium ps-2.5 pe-1 py-1 rounded-full"
             >
               {brand.label}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); removeBrand(brandId); }}
                 className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
-                aria-label={`Retirer ${brand.label}`}
+                aria-label={`${t('widgets.brandMultiSelect.remove')} ${brand.label}`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -87,7 +89,7 @@ export default function BrandMultiSelect({ selected, onChange, placeholder = 'Re
           );
         })}
         <div className="relative flex-1 min-w-[120px]">
-          <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search className="w-4 h-4 absolute start-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -95,8 +97,8 @@ export default function BrandMultiSelect({ selected, onChange, placeholder = 'Re
             onChange={e => { setQuery(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder={selected.length === 0 ? placeholder : ''}
-            className="w-full pl-8 pr-2 py-1.5 text-sm outline-none bg-transparent"
+            placeholder={selected.length === 0 ? (placeholder ?? t('widgets.brandMultiSelect.searchPlaceholder')) : ''}
+            className="w-full ps-8 pe-2 py-1.5 text-sm outline-none bg-transparent"
           />
         </div>
       </div>
@@ -104,7 +106,7 @@ export default function BrandMultiSelect({ selected, onChange, placeholder = 'Re
       {open && (
         <div className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-lg border border-slate-200 max-h-64 overflow-y-auto">
           {filtered.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-slate-400 text-center">Aucune marque trouvée</div>
+            <div className="px-3 py-4 text-sm text-slate-400 text-center">{t('widgets.brandMultiSelect.noBrandFound')}</div>
           ) : (
             filtered.map((brand, i) => {
               const isSelected = selected.includes(brand.id);
@@ -114,7 +116,7 @@ export default function BrandMultiSelect({ selected, onChange, placeholder = 'Re
                   type="button"
                   onMouseEnter={() => setHighlightIndex(i)}
                   onClick={() => toggleBrand(brand.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors text-left ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors text-start ${
                     i === highlightIndex ? 'bg-blue-50' : 'hover:bg-slate-50'
                   }`}
                 >

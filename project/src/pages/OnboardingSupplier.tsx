@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import type { SupplierProfile } from '@/lib/database.types';
 import { MapPin, Building2, ChevronRight, Package, Car } from 'lucide-react';
 import BrandMultiSelect from '@/components/BrandMultiSelect';
+import { getErrorMessage } from '@/lib/errors';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const WILAYAS = [
   'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar',
@@ -26,6 +28,7 @@ interface OnboardingSupplierProps {
 
 export default function OnboardingSupplier({ onComplete }: OnboardingSupplierProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ company_name: '', address: '', city: '', wilaya: 'Alger', zone: '', specialties: '' });
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -82,7 +85,7 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
       }
       onComplete();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -95,26 +98,26 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
           <Package className="w-8 h-8 mb-2" />
-          <h1 className="text-xl font-bold">Profil fournisseur</h1>
-          <p className="text-blue-100 text-sm mt-1">Complétez votre profil professionnel</p>
+          <h1 className="text-xl font-bold">{t('onboarding.supplier.title')}</h1>
+          <p className="text-blue-100 text-sm mt-1">{t('onboarding.supplier.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Raison sociale</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{t('onboarding.supplier.companyNameLabel')}</label>
             <input
               type="text"
               value={form.company_name}
               onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))}
               required
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none"
-              placeholder="Pièces Auto Maghreb SARL"
+              placeholder={t('onboarding.supplier.companyNamePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-              <MapPin className="inline w-3.5 h-3.5 mr-1" />Adresse
+              <MapPin className="inline w-3.5 h-3.5 me-1" />{t('onboarding.supplier.addressLabel')}
             </label>
             <input
               type="text"
@@ -122,13 +125,13 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
               onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
               required
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none"
-              placeholder="Zone des pièces, Marché X"
+              placeholder={t('onboarding.supplier.addressPlaceholder')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Ville</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{t('onboarding.common.city')}</label>
               <input
                 type="text"
                 value={form.city}
@@ -138,7 +141,7 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Wilaya</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{t('onboarding.common.wilaya')}</label>
               <select
                 value={form.wilaya}
                 onChange={e => setForm(f => ({ ...f, wilaya: e.target.value }))}
@@ -150,26 +153,26 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Zone de chalandise</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{t('onboarding.supplier.zoneLabel')}</label>
             <input
               type="text"
               value={form.zone}
               onChange={e => setForm(f => ({ ...f, zone: e.target.value }))}
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none"
-              placeholder="Blida, Alger, Médéa..."
+              placeholder={t('onboarding.supplier.zonePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">
-              <Car className="inline w-3.5 h-3.5 mr-1" />Marques véhicules spécialisées
+              <Car className="inline w-3.5 h-3.5 me-1" />{t('onboarding.supplier.brandsLabel')}
             </label>
             <BrandMultiSelect selected={selectedBrands} onChange={setSelectedBrands} />
-            <p className="text-xs text-slate-400 mt-1.5">Sélectionnez les marques que vous fournissez. Vous ne recevrez que les demandes correspondantes.</p>
+            <p className="text-xs text-slate-400 mt-1.5">{t('onboarding.supplier.brandsHelp')}</p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Spécialités</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">{t('onboarding.supplier.specialtiesLabel')}</label>
             <div className="flex flex-wrap gap-2">
               {SPECIALTIES_OPTIONS.map(s => (
                 <button
@@ -195,7 +198,7 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            {loading ? 'Enregistrement...' : 'Continuer'}
+            {loading ? t('onboarding.common.saving') : t('onboarding.common.continue')}
             <ChevronRight className="w-4 h-4" />
           </button>
         </form>

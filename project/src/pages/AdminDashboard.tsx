@@ -1,18 +1,28 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile, Request, Offer, Order, Reversement } from '@/lib/database.types';
 import DashboardLayout from '@/components/DashboardLayout';
-import { ShieldCheck, Users, Package, Truck, Wallet, TrendingUp, CheckCircle2, X, AlertCircle, ShoppingBag, History, Filter, Calendar, Tag, MapPin, ChevronRight, Search, Star, ArrowLeft, UserPlus, Pencil, KeyRound, Power, Trash2, Settings, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Users, Package, Truck, Wallet, TrendingUp, CheckCircle2, X, AlertCircle, ShoppingBag, History, Filter, Calendar, Tag, MapPin, ChevronRight, Search, Star, ArrowLeft, UserPlus, Pencil, KeyRound, Power, Trash2, Settings, CheckCircle, Clock, Inbox } from 'lucide-react';
 import UserManagement from '@/components/UserManagement';
 import AccountSettings from '@/components/AccountSettings';
 
-const STATUS_LABELS: Record<string, string> = {
-  open: 'Ouverte', offer_selected: 'Offre choisie', closed: 'Clôturée',
-  active: 'Active', selected: 'Choisie', rejected: 'Refusée',
-  to_pickup: 'À récupérer', in_delivery: 'En livraison', delivered: 'Livrée',
-  pending: 'En attente', paid: 'Payé',
-};
+function getStatusLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    open: t('admin.statusLabels.open'),
+    offer_selected: t('admin.statusLabels.offerSelected'),
+    closed: t('admin.statusLabels.closed'),
+    active: t('admin.statusLabels.active'),
+    selected: t('admin.statusLabels.selected'),
+    rejected: t('admin.statusLabels.rejected'),
+    to_pickup: t('admin.statusLabels.toPickup'),
+    in_delivery: t('admin.statusLabels.inDelivery'),
+    delivered: t('admin.statusLabels.delivered'),
+    pending: t('admin.statusLabels.pending'),
+    paid: t('admin.statusLabels.paid'),
+  };
+}
 
 interface RequestWithRelations extends Request {
   mechanic_profile?: Profile;
@@ -34,7 +44,10 @@ type PeriodFilter = 'all' | 'today' | 'week' | 'month' | 'year' | 'custom';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
+  const { t } = useLanguage();
+  const STATUS_LABELS = getStatusLabels(t);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [actionDetail, setActionDetail] = useState<AdminHistoryItem | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [requests, setRequests] = useState<RequestWithRelations[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -240,16 +253,34 @@ export default function AdminDashboard() {
     return s + (offer ? Number(o.cash_amount) - Number(offer.net_price) : 0);
   }, 0), [deliveredOrders, deliveredOffers, allOffers]);
 
-  const activeRequests = requests.filter(r => r.status !== 'closed');
   const openRequests = requests.filter(r => r.status === 'open');
 
+  // Unified action queue: everything that currently needs an admin decision.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const lateOrderItems = selectedOffersItems.filter(item => {
+    if (!item.order || item.order.delivery_status === 'delivered' || !item.order.delivery_date) return false;
+    return new Date(item.order.delivery_date + 'T00:00:00') < today;
+  });
+
+  const pendingReversements = reversements.filter(r => r.status === 'pending');
+
+  const markReversementPaid = async (revId: string) => {
+    await supabase.from('reversements').update({ status: 'paid', payment_date: new Date().toISOString() }).eq('id', revId);
+    await loadData();
+  };
+
+  const totalActionItems = lateOrderItems.length + pendingSuppliers.length + pendingReversements.length;
+
   const navItems = [
-    { id: 'dashboard', label: 'Vue d\'ensemble', icon: <TrendingUp className="w-5 h-5" /> },
-    { id: 'users', label: 'Utilisateurs', icon: <Users className="w-5 h-5" /> },
-    { id: 'requests', label: 'Demandes en cours', icon: <Package className="w-5 h-5" /> },
-    { id: 'history', label: 'Historique', icon: <History className="w-5 h-5" /> },
-    { id: 'payouts', label: 'Reversements', icon: <Wallet className="w-5 h-5" /> },
-    { id: 'settings', label: 'Paramètres', icon: <Settings className="w-5 h-5" /> },
+    { id: 'dashboard', label: t('admin.nav.dashboard'), icon: <TrendingUp className="w-5 h-5" /> },
+    { id: 'actions', label: t('admin.nav.actions'), icon: <Inbox className="w-5 h-5" /> },
+    { id: 'users', label: t('admin.nav.users'), icon: <Users className="w-5 h-5" /> },
+    { id: 'requests', label: t('admin.nav.requests'), icon: <Package className="w-5 h-5" /> },
+    { id: 'history', label: t('admin.nav.history'), icon: <History className="w-5 h-5" /> },
+    { id: 'payouts', label: t('admin.nav.payouts'), icon: <Wallet className="w-5 h-5" /> },
+    { id: 'settings', label: t('admin.nav.settings'), icon: <Settings className="w-5 h-5" /> },
   ];
 
   if (loading) {
@@ -258,18 +289,95 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout navItems={navItems} activeTab={activeTab} onTabChange={setActiveTab} accentColor="slate">
+      {activeTab === 'actions' && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">{t('admin.actions.title')}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t('admin.actions.subtitle')}</p>
+          </div>
+
+          {totalActionItems === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-40 text-green-500" />
+              <p>{t('admin.actions.allDone')}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {lateOrderItems.length > 0 && (
+                <ActionSection title={t('admin.actions.lateDeliveries')} count={lateOrderItems.length} color="red">
+                  {lateOrderItems.map(item => {
+                    const daysLate = Math.max(1, Math.round((today.getTime() - new Date(item.order!.delivery_date! + 'T00:00:00').getTime()) / 86400000));
+                    return (
+                      <ActionRow
+                        key={item.order!.id}
+                        icon={<Clock className="w-4 h-4" />}
+                        iconColor="red"
+                        title={item.selectedOffer?.part_name ?? item.request.description}
+                        subtitle={`${item.request.vehicle_make} ${item.request.vehicle_model} · ${item.mechanic?.full_name ?? '—'} · ${t('admin.actions.lateBy')} ${daysLate} ${daysLate > 1 ? t('admin.actions.days') : t('admin.actions.day')}`}
+                        onClick={() => setActionDetail(item)}
+                      />
+                    );
+                  })}
+                </ActionSection>
+              )}
+
+              {pendingSuppliers.length > 0 && (
+                <ActionSection title={t('admin.actions.pendingSuppliersTitle')} count={pendingSuppliers.length} color="amber">
+                  {pendingSuppliers.map(p => (
+                    <ActionRow
+                      key={p.id}
+                      icon={<Users className="w-4 h-4" />}
+                      iconColor="amber"
+                      title={p.full_name || `${p.first_name} ${p.last_name}`}
+                      subtitle={`${p.city || '—'} · ${t('admin.actions.registeredOn')} ${new Date(p.created_at).toLocaleDateString('fr-DZ')}`}
+                      action={
+                        <button onClick={() => toggleApproval(p)} className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0">
+                          {t('admin.actions.approve')}
+                        </button>
+                      }
+                    />
+                  ))}
+                </ActionSection>
+              )}
+
+              {pendingReversements.length > 0 && (
+                <ActionSection title={t('admin.actions.pendingReversementsTitle')} count={pendingReversements.length} color="blue">
+                  {pendingReversements.map(rev => {
+                    const supp = profiles.find(p => p.id === rev.supplier_id);
+                    return (
+                      <ActionRow
+                        key={rev.id}
+                        icon={<Wallet className="w-4 h-4" />}
+                        iconColor="blue"
+                        title={supp?.full_name ?? t('admin.common.supplier')}
+                        subtitle={`${rev.net_amount} DA · ${t('admin.actions.createdOn')} ${new Date(rev.created_at).toLocaleDateString('fr-DZ')}`}
+                        action={
+                          <button onClick={() => markReversementPaid(rev.id)} className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0">
+                            {t('admin.payouts.markPaid')}
+                          </button>
+                        }
+                      />
+                    );
+                  })}
+                </ActionSection>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Administration</h1>
-            <p className="text-slate-500 text-sm mt-1">Vue d'ensemble de la plateforme</p>
+            <h1 className="text-2xl font-bold text-slate-800">{t('admin.dashboard.title')}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t('admin.dashboard.subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <StatCard icon={<CheckCircle className="w-5 h-5" />} label="Offres choisies" value={selectedOffersItems.length} color="green" />
-            <StatCard icon={<Package className="w-5 h-5" />} label="Demandes ouvertes" value={openRequests.length} color="blue" onClick={() => setActiveTab('requests')} />
-            <StatCard icon={<ShoppingBag className="w-5 h-5" />} label="Commandes livrées" value={deliveredOrders.length} color="amber" onClick={() => setActiveTab('history')} />
-            <StatCard icon={<Wallet className="w-5 h-5" />} label="Commission" value={`${commissionTotal} DA`} color="green" onClick={() => setActiveTab('payouts')} />
+            <StatCard icon={<CheckCircle className="w-5 h-5" />} label={t('admin.dashboard.selectedOffers')} value={selectedOffersItems.length} color="green" onClick={() => setActiveTab('selected')} />
+            <StatCard icon={<Package className="w-5 h-5" />} label={t('admin.dashboard.openRequests')} value={openRequests.length} color="blue" onClick={() => setActiveTab('requests')} />
+            <StatCard icon={<ShoppingBag className="w-5 h-5" />} label={t('admin.dashboard.deliveredOrders')} value={deliveredOrders.length} color="amber" onClick={() => setActiveTab('history')} />
+            <StatCard icon={<Wallet className="w-5 h-5" />} label={t('admin.dashboard.commission')} value={`${commissionTotal} DA`} color="green" onClick={() => setActiveTab('payouts')} />
           </div>
 
           {pendingSuppliers.length > 0 && (
@@ -277,118 +385,26 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium text-amber-800 text-sm">{pendingSuppliers.length} fournisseur(s) en attente de validation</span>
+                  <span className="font-medium text-amber-800 text-sm">{pendingSuppliers.length} {t('admin.dashboard.suppliersPendingValidation')}</span>
                 </div>
                 <button onClick={approveAll} className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
-                  Tout valider
+                  {t('admin.dashboard.validateAll')}
                 </button>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-blue-600" />
-                <h2 className="font-semibold text-slate-800">Demandes ouvertes</h2>
-                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{openRequests.length}</span>
-              </div>
-            </div>
-            {openRequests.length === 0 ? (
-              <div className="px-5 py-10 text-center text-slate-400">
-                <Package className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucune demande ouverte pour le moment.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                {openRequests.map(req => {
-                  const createdDate = new Date(req.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit' });
-                  return (
-                    <button
-                      key={req.id}
-                      onClick={() => setActiveTab('requests')}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                        <Package className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-slate-800 text-sm truncate">{req.vehicle_make} {req.vehicle_model} {req.vehicle_year || ''}</div>
-                        <div className="text-xs text-slate-400 truncate">
-                          {req.description} · {req.mechanic_profile?.full_name ?? '—'} · {createdDate}
-                        </div>
-                      </div>
-                      {req.urgency === 'urgent' && (
-                        <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0">Urgent</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <h2 className="font-semibold text-slate-800">Offres choisies</h2>
-                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{selectedOffersItems.length}</span>
-              </div>
-            </div>
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400" />
-              </div>
-            ) : selectedOffersItems.length === 0 ? (
-              <div className="px-5 py-10 text-center text-slate-400">
-                <CheckCircle className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucune offre choisie pour le moment.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                {selectedOffersItems.map(item => {
-                  const { request, mechanic, selectedOffer, order } = item;
-                  const statusLabel = order ? STATUS_LABELS[order.delivery_status] : 'En attente';
-                  const statusColor = order
-                    ? order.delivery_status === 'delivered'
-                      ? 'bg-green-50 text-green-700'
-                      : order.delivery_status === 'in_delivery'
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-amber-50 text-amber-700'
-                    : 'bg-slate-100 text-slate-500';
-                  return (
-                    <button
-                      key={selectedOffer?.id ?? request.id}
-                      onClick={() => setSelectedOffersDetail(item)}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center shrink-0">
-                        <Tag className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-slate-800 text-sm truncate">{selectedOffer?.part_name ?? request.description}</div>
-                        <div className="text-xs text-slate-400 truncate">
-                          {request.vehicle_make} {request.vehicle_model} · {mechanic?.full_name ?? '—'} · {selectedOffer?.supplier_profile?.full_name ?? '—'}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-sm font-bold text-slate-800">{selectedOffer ? `${selectedOffer.displayed_price} DA` : '—'}</div>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h2 className="font-semibold text-slate-800 mb-4">Répartition par rôle</h2>
+            <h2 className="font-semibold text-slate-800 mb-4">{t('admin.dashboard.roleBreakdown')}</h2>
             <div className="space-y-2">
               {(['mechanic', 'supplier', 'delivery', 'admin'] as const).map(role => {
                 const count = profiles.filter(p => p.role === role).length;
-                const labels = { mechanic: 'Mécaniciens', supplier: 'Fournisseurs', delivery: 'Livreurs', admin: 'Admins' };
+                const labels = {
+                  mechanic: t('admin.dashboard.roles.mechanic'),
+                  supplier: t('admin.dashboard.roles.supplier'),
+                  delivery: t('admin.dashboard.roles.delivery'),
+                  admin: t('admin.dashboard.roles.admin'),
+                };
                 const max = profiles.length || 1;
                 return (
                   <div key={role} className="flex items-center gap-3">
@@ -410,23 +426,33 @@ export default function AdminDashboard() {
         <UserManagement profiles={profiles} onRefresh={loadData} />
       )}
 
+      {activeTab === 'selected' && (
+        <div className="space-y-4">
+          <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            {t('admin.common.back')}
+          </button>
+          <SelectedOffersView items={selectedOffersItems} loading={loading} onOpen={setSelectedOffersDetail} />
+        </div>
+      )}
+
       {activeTab === 'requests' && (
         <div className="space-y-4">
           <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Retour
+            {t('admin.common.back')}
           </button>
-          <h1 className="text-2xl font-bold text-slate-800">Demandes en cours</h1>
-          <p className="text-slate-500 text-sm">Demandes ouvertes et offres correspondantes</p>
+          <h1 className="text-2xl font-bold text-slate-800">{t('admin.requests.title')}</h1>
+          <p className="text-slate-500 text-sm">{t('admin.requests.subtitle')}</p>
 
-          {activeRequests.length === 0 ? (
+          {openRequests.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
               <Package className="w-12 h-12 mx-auto mb-3 opacity-40" />
-              <p>Aucune demande en cours.</p>
+              <p>{t('admin.requests.empty')}</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {activeRequests.map(req => (
+              {openRequests.map(req => (
                 <AdminRequestCard
                   key={req.id}
                   request={req}
@@ -450,7 +476,7 @@ export default function AdminDashboard() {
         <div className="space-y-4">
           <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Retour
+            {t('admin.common.back')}
           </button>
           <AdminHistoryView
           items={historyItems}
@@ -472,13 +498,13 @@ export default function AdminDashboard() {
         <div className="space-y-4">
           <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Retour
+            {t('admin.common.back')}
           </button>
-          <h1 className="text-2xl font-bold text-slate-800">Reversements</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t('admin.payouts.title')}</h1>
           {reversements.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
               <Wallet className="w-12 h-12 mx-auto mb-3 opacity-40" />
-              <p>Aucun reversement enregistré.</p>
+              <p>{t('admin.payouts.empty')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -488,18 +514,18 @@ export default function AdminDashboard() {
                   <div key={rev.id} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center shrink-0"><Wallet className="w-5 h-5" /></div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-slate-800 text-sm">{supp?.full_name ?? 'Fournisseur'}</div>
+                      <div className="font-medium text-slate-800 text-sm">{supp?.full_name ?? t('admin.common.supplier')}</div>
                       <div className="text-xs text-slate-400">{new Date(rev.created_at).toLocaleDateString('fr-DZ')}</div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <div className="text-sm font-bold text-slate-800">{rev.net_amount} DA</div>
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${rev.status === 'paid' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
                       {STATUS_LABELS[rev.status]}
                     </span>
                     {rev.status === 'pending' && (
-                      <button onClick={async () => { await supabase.from('reversements').update({ status: 'paid', payment_date: new Date().toISOString() }).eq('id', rev.id); await loadData(); }} className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
-                        Marquer payé
+                      <button onClick={() => markReversementPaid(rev.id)} className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+                        {t('admin.payouts.markPaid')}
                       </button>
                     )}
                   </div>
@@ -523,7 +549,56 @@ export default function AdminDashboard() {
       {selectedOffersDetail && (
         <AdminHistoryDetailModal item={selectedOffersDetail} onClose={() => setSelectedOffersDetail(null)} />
       )}
+
+      {actionDetail && (
+        <AdminHistoryDetailModal item={actionDetail} onClose={() => setActionDetail(null)} />
+      )}
     </DashboardLayout>
+  );
+}
+
+function ActionSection({ title, count, color, children }: { title: string; count: number; color: 'red' | 'amber' | 'blue'; children: React.ReactNode }) {
+  const badgeColors: Record<string, string> = {
+    red: 'bg-red-50 text-red-700',
+    amber: 'bg-amber-50 text-amber-700',
+    blue: 'bg-blue-50 text-blue-700',
+  };
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100">
+        <h2 className="font-semibold text-slate-800 text-sm">{title}</h2>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeColors[color]}`}>{count}</span>
+      </div>
+      <div className="divide-y divide-slate-100">{children}</div>
+    </div>
+  );
+}
+
+function ActionRow({ icon, iconColor, title, subtitle, onClick, action }: {
+  icon: React.ReactNode;
+  iconColor: 'red' | 'amber' | 'blue';
+  title: string;
+  subtitle: string;
+  onClick?: () => void;
+  action?: React.ReactNode;
+}) {
+  const iconColors: Record<string, string> = {
+    red: 'bg-red-50 text-red-600',
+    amber: 'bg-amber-50 text-amber-600',
+    blue: 'bg-blue-50 text-blue-600',
+  };
+  return (
+    <div
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-5 py-3 ${onClick ? 'cursor-pointer hover:bg-slate-50 transition-colors' : ''}`}
+    >
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconColors[iconColor]}`}>{icon}</div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-slate-800 text-sm truncate">{title}</div>
+        <div className="text-xs text-slate-400 truncate">{subtitle}</div>
+      </div>
+      {action}
+    </div>
   );
 }
 
@@ -535,7 +610,7 @@ function StatCard({ icon, label, value, color, onClick }: { icon: React.ReactNod
     green: 'bg-green-50 text-green-600 border-green-300',
   };
   return (
-    <button type="button" onClick={onClick} className={`bg-white rounded-xl border-2 p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${COLORS[color]}`}>
+    <button type="button" onClick={onClick} className={`bg-white rounded-xl border-2 p-4 text-start transition-all hover:shadow-md hover:-translate-y-0.5 ${COLORS[color]}`}>
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${COLORS[color]}`}>{icon}</div>
       <div className="text-xl font-bold text-slate-800">{value}</div>
       <div className="text-xs text-slate-400">{label}</div>
@@ -544,13 +619,15 @@ function StatCard({ icon, label, value, color, onClick }: { icon: React.ReactNod
 }
 
 function AdminRequestCard({ request, expanded, onToggle }: { request: RequestWithRelations; expanded: boolean; onToggle: () => void }) {
+  const { t } = useLanguage();
+  const STATUS_LABELS = getStatusLabels(t);
   const createdDate = new Date(request.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const offers = request.offers ?? [];
   const offersLoaded = request.offers !== undefined;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <button onClick={onToggle} className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50/50 transition-colors">
+      <button onClick={onToggle} className="w-full flex items-center gap-3 p-4 text-start hover:bg-slate-50/50 transition-colors">
         <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-white shrink-0 ${request.urgency === 'urgent' ? 'bg-red-500' : 'bg-slate-700'}`}>
           <Package className="w-5 h-5" />
         </div>
@@ -565,12 +642,12 @@ function AdminRequestCard({ request, expanded, onToggle }: { request: RequestWit
           <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{createdDate}</span>
             {request.mechanic_profile && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{request.mechanic_profile.full_name}</span>}
-            {request.urgency === 'urgent' && <span className="text-red-500 font-medium">Urgent</span>}
+            {request.urgency === 'urgent' && <span className="text-red-500 font-medium">{t('admin.requests.urgent')}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {offersLoaded && offers.length > 0 && (
-            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{offers.length} offre{offers.length > 1 ? 's' : ''}</span>
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{offers.length} {offers.length > 1 ? t('admin.requests.offersPlural') : t('admin.requests.offerSingular')}</span>
           )}
           <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </div>
@@ -583,7 +660,7 @@ function AdminRequestCard({ request, expanded, onToggle }: { request: RequestWit
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400" />
             </div>
           ) : offers.length === 0 ? (
-            <p className="text-center text-sm text-slate-400 py-4">Aucune offre pour cette demande.</p>
+            <p className="text-center text-sm text-slate-400 py-4">{t('admin.requests.noOffers')}</p>
           ) : (
             <div className="space-y-2">
               {offers.map(offer => (
@@ -593,12 +670,12 @@ function AdminRequestCard({ request, expanded, onToggle }: { request: RequestWit
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-slate-800 text-sm truncate">{offer.part_name}</div>
-                    <div className="text-xs text-slate-400 truncate">{offer.part_brand} {offer.reference ? `· Réf: ${offer.reference}` : ''}</div>
+                    <div className="text-xs text-slate-400 truncate">{offer.part_brand} {offer.reference ? `· ${t('admin.requests.refPrefix')} ${offer.reference}` : ''}</div>
                     {offer.supplier_profile && <div className="text-xs text-slate-400 mt-0.5">{offer.supplier_profile.full_name}</div>}
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-end shrink-0">
                     <div className="text-sm font-bold text-slate-800">{offer.displayed_price} DA</div>
-                    <div className="text-xs text-slate-400">net: {offer.net_price} DA</div>
+                    <div className="text-xs text-slate-400">{t('admin.common.netLabel')}: {offer.net_price} DA</div>
                   </div>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${offer.status === 'selected' ? 'bg-green-50 text-green-700' : offer.status === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-700'}`}>
                     {STATUS_LABELS[offer.status]}
@@ -618,6 +695,8 @@ function SelectedOffersView({ items, loading, onOpen }: {
   loading: boolean;
   onOpen: (item: AdminHistoryItem) => void;
 }) {
+  const { t } = useLanguage();
+  const STATUS_LABELS = getStatusLabels(t);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'no_order' | 'to_pickup' | 'in_delivery' | 'delivered'>('all');
 
@@ -644,28 +723,28 @@ function SelectedOffersView({ items, loading, onOpen }: {
   }, [items, searchQuery, statusFilter]);
 
   const statusOptions: { id: typeof statusFilter; label: string }[] = [
-    { id: 'all', label: 'Toutes' },
-    { id: 'no_order', label: 'Sans commande' },
-    { id: 'to_pickup', label: 'À récupérer' },
-    { id: 'in_delivery', label: 'En livraison' },
-    { id: 'delivered', label: 'Livrée' },
+    { id: 'all', label: t('admin.selected.filters.all') },
+    { id: 'no_order', label: t('admin.selected.filters.noOrder') },
+    { id: 'to_pickup', label: t('admin.selected.filters.toPickup') },
+    { id: 'in_delivery', label: t('admin.selected.filters.inDelivery') },
+    { id: 'delivered', label: t('admin.selected.filters.delivered') },
   ];
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Offres choisies</h1>
-        <p className="text-slate-500 text-sm mt-1">Offres sélectionnées par les mécaniciens, en cours de traitement</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t('admin.selected.title')}</h1>
+        <p className="text-slate-500 text-sm mt-1">{t('admin.selected.subtitle')}</p>
       </div>
 
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Rechercher : pièce, véhicule, mécanicien, fournisseur..."
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-400 outline-none bg-white"
+          placeholder={t('admin.selected.searchPlaceholder')}
+          className="w-full ps-9 pe-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-400 outline-none bg-white"
         />
       </div>
 
@@ -693,7 +772,7 @@ function SelectedOffersView({ items, loading, onOpen }: {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
           <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>{items.length === 0 ? 'Aucune offre choisie pour le moment.' : 'Aucun résultat pour ces critères.'}</p>
+          <p>{items.length === 0 ? t('admin.selected.emptyNone') : t('admin.common.noResults')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -701,20 +780,20 @@ function SelectedOffersView({ items, loading, onOpen }: {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Date</th>
-                  <th className="text-left px-4 py-3 font-semibold">Pièce</th>
-                  <th className="text-left px-4 py-3 font-semibold">Véhicule</th>
-                  <th className="text-left px-4 py-3 font-semibold">Mécanicien</th>
-                  <th className="text-left px-4 py-3 font-semibold">Fournisseur</th>
-                  <th className="text-left px-4 py-3 font-semibold">Statut</th>
-                  <th className="text-right px-4 py-3 font-semibold">Prix</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.date')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.part')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.vehicle')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.mechanic')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.supplier')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.status')}</th>
+                  <th className="text-end px-4 py-3 font-semibold">{t('admin.common.table.price')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filtered.map(item => {
                   const { request, mechanic, selectedOffer, order } = item;
                   const offerDate = new Date(selectedOffer?.updated_at ?? request.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const statusLabel = order ? STATUS_LABELS[order.delivery_status] : 'En attente';
+                  const statusLabel = order ? STATUS_LABELS[order.delivery_status] : t('admin.statusLabels.pending');
                   const statusColor = order
                     ? order.delivery_status === 'delivered'
                       ? 'text-green-700 bg-green-50'
@@ -738,7 +817,7 @@ function SelectedOffersView({ items, loading, onOpen }: {
                           {statusLabel}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-slate-800 whitespace-nowrap">
+                      <td className="px-4 py-3 text-end font-bold text-slate-800 whitespace-nowrap">
                         {selectedOffer ? `${selectedOffer.displayed_price} DA` : '—'}
                       </td>
                     </tr>
@@ -766,6 +845,7 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
   setCustomTo: (v: string) => void;
   onOpen: (item: AdminHistoryItem) => void;
 }) {
+  const { t } = useLanguage();
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const now = new Date();
@@ -802,29 +882,29 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
   }, [items, searchQuery, periodFilter, customFrom, customTo]);
 
   const periodOptions: { id: PeriodFilter; label: string }[] = [
-    { id: 'all', label: 'Tout' },
-    { id: 'today', label: "Aujourd'hui" },
-    { id: 'week', label: 'Cette semaine' },
-    { id: 'month', label: 'Ce mois' },
-    { id: 'year', label: 'Cette année' },
-    { id: 'custom', label: 'Personnalisé' },
+    { id: 'all', label: t('admin.history.periods.all') },
+    { id: 'today', label: t('admin.history.periods.today') },
+    { id: 'week', label: t('admin.history.periods.week') },
+    { id: 'month', label: t('admin.history.periods.month') },
+    { id: 'year', label: t('admin.history.periods.year') },
+    { id: 'custom', label: t('admin.history.periods.custom') },
   ];
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Historique</h1>
-        <p className="text-slate-500 text-sm mt-1">Demandes clôturées et commandes livrées</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t('admin.history.title')}</h1>
+        <p className="text-slate-500 text-sm mt-1">{t('admin.history.subtitle')}</p>
       </div>
 
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Rechercher : pièce, véhicule, mécanicien..."
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-400 outline-none bg-white"
+          placeholder={t('admin.history.searchPlaceholder')}
+          className="w-full ps-9 pe-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-400 outline-none bg-white"
         />
       </div>
 
@@ -848,11 +928,11 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
       {periodFilter === 'custom' && (
         <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-slate-200 p-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-500">Du</label>
+            <label className="text-xs font-medium text-slate-500">{t('admin.history.from')}</label>
             <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="text-sm px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-slate-400" />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-500">Au</label>
+            <label className="text-xs font-medium text-slate-500">{t('admin.history.to')}</label>
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="text-sm px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-slate-400" />
           </div>
         </div>
@@ -865,7 +945,7 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
           <History className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>{items.length === 0 ? 'Aucune demande clôturée pour le moment.' : 'Aucun résultat pour ces critères.'}</p>
+          <p>{items.length === 0 ? t('admin.history.emptyNone') : t('admin.common.noResults')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -873,12 +953,12 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Date</th>
-                  <th className="text-left px-4 py-3 font-semibold">Pièce / Demande</th>
-                  <th className="text-left px-4 py-3 font-semibold">Véhicule</th>
-                  <th className="text-left px-4 py-3 font-semibold">Mécanicien</th>
-                  <th className="text-left px-4 py-3 font-semibold">Type</th>
-                  <th className="text-right px-4 py-3 font-semibold">Prix</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.date')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.history.table.partOrRequest')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.vehicle')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.mechanic')}</th>
+                  <th className="text-start px-4 py-3 font-semibold">{t('admin.common.table.type')}</th>
+                  <th className="text-end px-4 py-3 font-semibold">{t('admin.common.table.price')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -898,10 +978,10 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{mechanic?.full_name ?? '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isDelivered ? 'text-green-700 bg-green-50' : 'text-slate-500 bg-slate-100'}`}>
-                          {isDelivered ? 'Livrée' : 'Clôturée'}
+                          {isDelivered ? t('admin.statusLabels.delivered') : t('admin.statusLabels.closed')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-slate-800 whitespace-nowrap">
+                      <td className="px-4 py-3 text-end font-bold text-slate-800 whitespace-nowrap">
                         {selectedOffer ? `${selectedOffer.displayed_price} DA` : '—'}
                       </td>
                     </tr>
@@ -917,6 +997,8 @@ function AdminHistoryView({ items, loading, searchQuery, setSearchQuery, periodF
 }
 
 function AdminHistoryDetailModal({ item, onClose }: { item: AdminHistoryItem; onClose: () => void }) {
+  const { t } = useLanguage();
+  const STATUS_LABELS = getStatusLabels(t);
   const { request, mechanic, selectedOffer, order } = item;
   const isClosed = request.status === 'closed';
   const dateValue = isClosed
@@ -932,7 +1014,7 @@ function AdminHistoryDetailModal({ item, onClose }: { item: AdminHistoryItem; on
             <h2 className="font-bold text-slate-800 text-lg">{selectedOffer?.part_name ?? request.description}</h2>
             <div className="flex items-center gap-2 mt-1">
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isClosed ? 'text-slate-500 bg-slate-100' : 'text-amber-700 bg-amber-50'}`}>
-                {isClosed ? 'Demande clôturée' : 'Offre choisie'}
+                {isClosed ? t('admin.historyModal.closedBadge') : t('admin.historyModal.selectedBadge')}
               </span>
             </div>
           </div>
@@ -941,30 +1023,30 @@ function AdminHistoryDetailModal({ item, onClose }: { item: AdminHistoryItem; on
 
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <DetailField label={isClosed ? 'Date de clôture' : 'Date de la demande'} value={dateValue} icon={<Calendar className="w-4 h-4" />} />
-            <DetailField label="Véhicule" value={`${request.vehicle_make} ${request.vehicle_model} ${request.vehicle_year || ''}`} icon={<Package className="w-4 h-4" />} />
-            <DetailField label="Mécanicien" value={mechanic?.full_name ?? '—'} icon={<MapPin className="w-4 h-4" />} />
-            {selectedOffer && <DetailField label="Fournisseur (pièce)" value={selectedOffer.part_brand} icon={<Tag className="w-4 h-4" />} />}
+            <DetailField label={isClosed ? t('admin.historyModal.closedDateLabel') : t('admin.historyModal.requestDateLabel')} value={dateValue} icon={<Calendar className="w-4 h-4" />} />
+            <DetailField label={t('admin.common.vehicle')} value={`${request.vehicle_make} ${request.vehicle_model} ${request.vehicle_year || ''}`} icon={<Package className="w-4 h-4" />} />
+            <DetailField label={t('admin.common.mechanic')} value={mechanic?.full_name ?? '—'} icon={<MapPin className="w-4 h-4" />} />
+            {selectedOffer && <DetailField label={t('admin.historyModal.supplierPartLabel')} value={selectedOffer.part_brand} icon={<Tag className="w-4 h-4" />} />}
           </div>
 
           {selectedOffer && (
             <div className="border border-slate-200 rounded-xl p-4">
-              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">Offre sélectionnée</div>
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">{t('admin.historyModal.selectedOfferSection')}</div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-xs text-slate-400">Pièce</div>
+                  <div className="text-xs text-slate-400">{t('admin.common.part')}</div>
                   <div className="text-sm font-medium text-slate-800">{selectedOffer.part_name}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Référence</div>
+                  <div className="text-xs text-slate-400">{t('admin.common.reference')}</div>
                   <div className="text-sm font-medium text-slate-800">{selectedOffer.reference ?? '—'}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Prix net fournisseur</div>
+                  <div className="text-xs text-slate-400">{t('admin.historyModal.netPriceLabel')}</div>
                   <div className="text-sm font-medium text-slate-800">{selectedOffer.net_price} DA</div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Prix affiché client</div>
+                  <div className="text-xs text-slate-400">{t('admin.historyModal.displayedPriceLabel')}</div>
                   <div className="text-sm font-medium text-slate-800">{selectedOffer.displayed_price} DA</div>
                 </div>
               </div>
@@ -973,20 +1055,20 @@ function AdminHistoryDetailModal({ item, onClose }: { item: AdminHistoryItem; on
 
           {order && (
             <div className="border border-slate-200 rounded-xl p-4">
-              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">Commande</div>
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">{t('admin.historyModal.orderSection')}</div>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-slate-600">Statut: {STATUS_LABELS[order.delivery_status]}</div>
+                  <div className="text-sm text-slate-600">{t('admin.common.status')}: {STATUS_LABELS[order.delivery_status]}</div>
                   {order.delivery_date && (
                     <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                       <Truck className="w-3 h-3" />
-                      Livraison: {new Date(order.delivery_date).toLocaleDateString('fr-DZ')}
+                      {t('admin.historyModal.deliveryLabel')}: {new Date(order.delivery_date).toLocaleDateString('fr-DZ')}
                     </div>
                   )}
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-end shrink-0">
                   <div className="text-lg font-bold text-slate-800">{order.cash_amount} DA</div>
-                  <div className="text-xs text-green-600">Commission: +{commission} DA</div>
+                  <div className="text-xs text-green-600">{t('admin.common.commission')}: +{commission} DA</div>
                 </div>
               </div>
             </div>
@@ -1016,6 +1098,7 @@ function ReverseModal({ order, allOffers, profiles, onClose, onDone }: {
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useLanguage();
   const offer = allOffers.find(o => o.id === order.offer_id);
   const supplier = profiles.find(p => p.id === order.supplier_id);
   const [loading, setLoading] = useState(false);
@@ -1036,19 +1119,19 @@ function ReverseModal({ order, allOffers, profiles, onClose, onDone }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
-          <h2 className="font-bold text-slate-800 text-lg">Créer un reversement</h2>
+          <h2 className="font-bold text-slate-800 text-lg">{t('admin.reverseModal.title')}</h2>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-3">
           <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Fournisseur</span><span className="font-medium text-slate-800">{supplier?.full_name}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Pièce</span><span className="font-medium text-slate-800">{offer?.part_name}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Prix encaissé</span><span className="font-medium text-slate-800">{order.cash_amount} DA</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Net à reverser</span><span className="font-bold text-green-700">{offer?.net_price} DA</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Commission (5%)</span><span className="font-medium text-slate-600">{Number(order.cash_amount) - Number(offer?.net_price ?? 0)} DA</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t('admin.common.supplier')}</span><span className="font-medium text-slate-800">{supplier?.full_name}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t('admin.common.part')}</span><span className="font-medium text-slate-800">{offer?.part_name}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t('admin.reverseModal.cashAmount')}</span><span className="font-medium text-slate-800">{order.cash_amount} DA</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t('admin.reverseModal.netToReverse')}</span><span className="font-bold text-green-700">{offer?.net_price} DA</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t('admin.reverseModal.feesCommission')}</span><span className="font-medium text-slate-600">{Number(order.cash_amount) - Number(offer?.net_price ?? 0)} DA</span></div>
           </div>
           <button onClick={handleReverse} disabled={loading} className="w-full bg-slate-700 hover:bg-slate-800 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors">
-            {loading ? 'Enregistrement...' : 'Confirmer le reversement'}
+            {loading ? t('admin.common.saving') : t('admin.reverseModal.confirm')}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, X, Check, ChevronDown, Car } from 'lucide-react';
+import { Search, X, Check, ChevronDown } from 'lucide-react';
 import { searchBrands, searchModels, getBrand, getModel, normalize } from '@/lib/vehiclesCatalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface VehicleSelection {
   brand_id: string;
@@ -19,7 +20,10 @@ interface VehicleSelectProps {
 type Step = 'brand' | 'model' | 'year';
 
 export default function VehicleSelect({ value, onChange, required }: VehicleSelectProps) {
-  const [step, setStep] = useState<Step>(value ? (value.year ? 'year' : value.model_id ? 'model' : 'brand') : 'brand');
+  const { t } = useLanguage();
+  // value is either null, or has brand_id+model_id set (year may still be null) — either way the next
+  // thing to pick when it's non-null is the year, never re-picking the model.
+  const [step, setStep] = useState<Step>(value ? 'year' : 'brand');
   const [brandId, setBrandId] = useState<string | null>(value?.brand_id ?? null);
   const [modelId, setModelId] = useState<string | null>(value?.model_id ?? null);
   const [year, setYear] = useState<number | null>(value?.year ?? null);
@@ -52,7 +56,7 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
     }
   }, [open, step]);
 
-  const pickBrand = (id: string, label: string) => {
+  const pickBrand = (id: string) => {
     setBrandId(id);
     setModelId(null);
     setYear(null);
@@ -113,7 +117,7 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
       e.preventDefault();
       const item = list[highlight];
       if (!item) return;
-      if (step === 'brand') pickBrand(item.id, item.label);
+      if (step === 'brand') pickBrand(item.id);
       else if (step === 'model') pickModel(item.id, item.label);
     } else if (e.key === 'Escape') { setOpen(false); }
   };
@@ -151,14 +155,14 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
         <div className="space-y-3">
           {brand && (
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <span className="text-slate-400">Marque:</span>
+              <span className="text-slate-400">{t('widgets.vehicleSelect.brand')}</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
                 {brand.label}
                 <button type="button" onClick={backToBrand} className="hover:text-orange-900"><X className="w-3 h-3" /></button>
               </span>
               {model && (
                 <>
-                  <span className="text-slate-400">Modèle:</span>
+                  <span className="text-slate-400">{t('widgets.vehicleSelect.model')}</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
                     {model.label}
                     <button type="button" onClick={backToModel} className="hover:text-orange-900"><X className="w-3 h-3" /></button>
@@ -175,12 +179,12 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
                 onClick={() => setOpen(o => !o)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-colors outline-none ${open ? 'border-orange-400 ring-2 ring-orange-100' : 'border-slate-200 hover:border-slate-300'}`}
               >
-                <span className={year ? 'text-slate-800' : 'text-slate-400'}>{year ? year : 'Sélectionner l\'année'}</span>
+                <span className={year ? 'text-slate-800' : 'text-slate-400'}>{year ? year : t('widgets.vehicleSelect.selectYear')}</span>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
               </button>
             ) : (
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 <input
                   ref={inputRef}
                   type="text"
@@ -192,11 +196,11 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
                   inputMode="text"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
-                  placeholder={step === 'brand' ? 'Tapez les premières lettres (re, pe, hy…)' : `Rechercher un modèle ${brand ? brand.label : ''}…`}
+                  className="w-full ps-9 pe-9 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
+                  placeholder={step === 'brand' ? t('widgets.vehicleSelect.brandPlaceholder') : `${t('widgets.vehicleSelect.modelPlaceholderPrefix')} ${brand ? brand.label : ''}…`}
                 />
                 {query && (
-                  <button type="button" onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600">
+                  <button type="button" onClick={() => setQuery('')} className="absolute end-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600">
                     <X className="w-4 h-4" />
                   </button>
                 )}
@@ -207,15 +211,15 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
           {open && step === 'brand' && (
             <div className="absolute z-50 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-lg max-h-60 overflow-y-auto">
               {brandResults.length === 0 ? (
-                <div className="px-3 py-6 text-center text-sm text-slate-400">Aucune marque trouvée</div>
+                <div className="px-3 py-6 text-center text-sm text-slate-400">{t('widgets.vehicleSelect.noBrandFound')}</div>
               ) : (
                 brandResults.map((b, i) => (
                   <button
                     key={b.id}
                     type="button"
                     onMouseEnter={() => setHighlight(i)}
-                    onClick={() => pickBrand(b.id, b.label)}
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${i === highlight ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                    onClick={() => pickBrand(b.id)}
+                    className={`w-full text-start px-3 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${i === highlight ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'}`}
                   >
                     {highlightMatch(b.label, query)}
                   </button>
@@ -227,7 +231,7 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
           {open && step === 'model' && brand && (
             <div className="absolute z-50 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-lg max-h-60 overflow-y-auto">
               {modelResults.length === 0 ? (
-                <div className="px-3 py-6 text-center text-sm text-slate-400">Aucun modèle trouvé</div>
+                <div className="px-3 py-6 text-center text-sm text-slate-400">{t('widgets.vehicleSelect.noModelFound')}</div>
               ) : (
                 modelResults.map((m, i) => (
                   <button
@@ -235,7 +239,7 @@ export default function VehicleSelect({ value, onChange, required }: VehicleSele
                     type="button"
                     onMouseEnter={() => setHighlight(i)}
                     onClick={() => pickModel(m.id, m.label)}
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${i === highlight ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                    className={`w-full text-start px-3 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${i === highlight ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'}`}
                   >
                     {highlightMatch(m.label, query)}
                   </button>

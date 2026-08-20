@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Profile, GarageProfile, SupplierProfile, SupplierBrand } from '@/lib/database.types';
+import { updateAppBadge } from '@/lib/appBadge';
 
 interface AuthContextValue {
   session: Session | null;
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    updateAppBadge(0);
     await supabase.auth.signOut();
   };
 

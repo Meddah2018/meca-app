@@ -22,6 +22,7 @@ export interface Profile {
   is_active: boolean;
   first_login_completed: boolean;
   created_by: string | null;
+  preferred_language: 'fr' | 'ar';
 }
 
 export interface PublicProfile {
@@ -66,7 +67,10 @@ export interface Request {
   status: RequestStatus;
   part_name: string | null;
   part_category: string | null;
+  quantity: number;
   carte_grise_url: string | null;
+  part_photo_urls: string[];
+  reference_photo_url: string | null;
   completed_at: string | null;
   created_at: string;
 }

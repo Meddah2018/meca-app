@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Wrench } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AuthPageProps {
   onAuth: () => void;
 }
 
 export default function AuthPage({ onAuth }: AuthPageProps) {
+  const { t } = useLanguage();
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -38,7 +40,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
       if (prof && !prof.is_active) {
         await supabase.auth.signOut();
-        throw new Error('Votre compte est désactivé. Contactez l\'administrateur.');
+        throw new Error(t('auth.accountDisabled'));
       }
 
       if (prof && !prof.first_login_completed) {
@@ -50,7 +52,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
       onAuth();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      setError(getErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -60,11 +62,11 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     e.preventDefault();
     setError('');
     if (newPassword.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setError(t('auth.passwordTooShort'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError(t('auth.passwordMismatch'));
       return;
     }
     setLoading(true);
@@ -81,7 +83,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
       onAuth();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du changement de mot de passe');
+      setError(getErrorMessage(err, t('auth.passwordChangeError')));
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
       }
       onAuth();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -110,25 +112,23 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Wrench className="w-7 h-7 text-white" />
-            </div>
+            <img src="/icon_pieces_512.png" alt="MécaPièces" className="w-12 h-12 rounded-xl shadow-lg object-cover" />
             <span className="text-3xl font-bold text-white tracking-tight">MecaPieces</span>
           </div>
-          <p className="text-slate-400 text-sm">La place de marché des pièces détachées</p>
+          <p className="text-slate-400 text-sm">{t('auth.tagline')}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {needsPasswordChange ? (
             <form onSubmit={handleChangePassword} className="p-6 space-y-4">
               <div className="text-center mb-2">
-                <h2 className="text-lg font-bold text-slate-800">Changer votre mot de passe</h2>
+                <h2 className="text-lg font-bold text-slate-800">{t('auth.changePasswordTitle')}</h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  Pour plus de sécurité, vous pouvez définir un nouveau mot de passe. Vous pouvez aussi passer cette étape et le faire plus tard dans vos paramètres.
+                  {t('auth.changePasswordHint')}
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nouveau mot de passe</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('auth.newPassword')}</label>
                 <input
                   type="password"
                   value={newPassword}
@@ -140,7 +140,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Confirmer le mot de passe</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('auth.confirmPassword')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -159,7 +159,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 disabled={loading}
                 className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold py-3 rounded-xl transition-colors shadow-sm"
               >
-                {loading ? 'Chargement...' : 'Définir mon mot de passe'}
+                {loading ? t('common.loading') : t('auth.setPassword')}
               </button>
               <button
                 type="button"
@@ -167,17 +167,17 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 disabled={loading}
                 className="w-full text-slate-500 hover:text-slate-700 text-sm font-medium py-2 transition-colors"
               >
-                Passer pour l'instant
+                {t('auth.skipForNow')}
               </button>
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="text-center mb-2">
-                <h2 className="text-lg font-bold text-slate-800">Connexion</h2>
-                <p className="text-sm text-slate-500 mt-1">Identifiant et mot de passe fournis par l'administrateur</p>
+                <h2 className="text-lg font-bold text-slate-800">{t('auth.loginTitle')}</h2>
+                <p className="text-sm text-slate-500 mt-1">{t('auth.loginHint')}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Identifiant</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('auth.loginId')}</label>
                 <input
                   type="text"
                   value={loginId}
@@ -189,7 +189,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Mot de passe</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('auth.password')}</label>
                 <input
                   type="password"
                   value={password}
@@ -208,14 +208,14 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 disabled={loading}
                 className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold py-3 rounded-xl transition-colors shadow-sm"
               >
-                {loading ? 'Chargement...' : 'Se connecter'}
+                {loading ? t('common.loading') : t('auth.loginSubmit')}
               </button>
             </form>
           )}
         </div>
 
         <p className="text-center text-slate-500 text-xs mt-6">
-          Plateforme pilote · Algérie 2026
+          {t('auth.footer')}
         </p>
       </div>
     </div>

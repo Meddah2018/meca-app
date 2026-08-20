@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { GarageProfile } from '@/lib/database.types';
 import { MapPin, Phone, Building2, ChevronRight } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const WILAYAS = [
   'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar',
@@ -22,6 +24,7 @@ interface OnboardingMechanicProps {
 
 export default function OnboardingMechanic({ onComplete }: OnboardingMechanicProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ garage_name: '', address: '', city: '', wilaya: 'Alger' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,7 +54,7 @@ export default function OnboardingMechanic({ onComplete }: OnboardingMechanicPro
       }
       onComplete();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -64,14 +67,14 @@ export default function OnboardingMechanic({ onComplete }: OnboardingMechanicPro
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
           <Building2 className="w-8 h-8 mb-2" />
-          <h1 className="text-xl font-bold">Profil de votre garage</h1>
-          <p className="text-orange-100 text-sm mt-1">Ces informations sont nécessaires pour recevoir les livraisons</p>
+          <h1 className="text-xl font-bold">{t('onboarding.mechanic.title')}</h1>
+          <p className="text-orange-100 text-sm mt-1">{t('onboarding.mechanic.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-              <Building2 className="inline w-3.5 h-3.5 mr-1" />Nom du garage
+              <Building2 className="inline w-3.5 h-3.5 me-1" />{t('onboarding.mechanic.garageNameLabel')}
             </label>
             <input
               type="text"
@@ -79,13 +82,13 @@ export default function OnboardingMechanic({ onComplete }: OnboardingMechanicPro
               onChange={e => setForm(f => ({ ...f, garage_name: e.target.value }))}
               required
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
-              placeholder="Garage Al Amal"
+              placeholder={t('onboarding.mechanic.garageNamePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-              <MapPin className="inline w-3.5 h-3.5 mr-1" />Adresse de livraison
+              <MapPin className="inline w-3.5 h-3.5 me-1" />{t('onboarding.mechanic.addressLabel')}
             </label>
             <input
               type="text"
@@ -93,24 +96,24 @@ export default function OnboardingMechanic({ onComplete }: OnboardingMechanicPro
               onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
               required
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
-              placeholder="15 rue de l'Atelier, Zone industrielle"
+              placeholder={t('onboarding.mechanic.addressPlaceholder')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Ville</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{t('onboarding.common.city')}</label>
               <input
                 type="text"
                 value={form.city}
                 onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                 required
                 className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
-                placeholder="Blida"
+                placeholder={t('onboarding.mechanic.cityPlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Wilaya</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{t('onboarding.common.wilaya')}</label>
               <select
                 value={form.wilaya}
                 onChange={e => setForm(f => ({ ...f, wilaya: e.target.value }))}
@@ -128,7 +131,7 @@ export default function OnboardingMechanic({ onComplete }: OnboardingMechanicPro
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            {loading ? 'Enregistrement...' : 'Continuer'}
+            {loading ? t('onboarding.common.saving') : t('onboarding.common.continue')}
             <ChevronRight className="w-4 h-4" />
           </button>
         </form>

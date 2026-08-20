@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { User, KeyRound, Check, AlertCircle, ArrowLeft } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
 
 const ADMIN_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`;
 
@@ -27,6 +29,7 @@ const inputCls = 'w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm 
 
 export default function AccountSettings() {
   const { profile, refreshProfile, signOut } = useAuth();
+  const { t } = useLanguage();
   const [loginId, setLoginId] = useState(profile?.login_id ?? '');
   const [loginIdError, setLoginIdError] = useState('');
   const [loginIdSuccess, setLoginIdSuccess] = useState(false);
@@ -49,11 +52,11 @@ export default function AccountSettings() {
     setLoginIdError('');
     setLoginIdSuccess(false);
     if (!loginId.trim()) {
-      setLoginIdError("L'identifiant est requis");
+      setLoginIdError(t('account.loginId.required'));
       return;
     }
     if (loginId.trim().toLowerCase() === profile?.login_id) {
-      setLoginIdError('Ceci est déjà votre identifiant actuel');
+      setLoginIdError(t('account.loginId.unchanged'));
       return;
     }
     setLoginIdLoading(true);
@@ -63,7 +66,7 @@ export default function AccountSettings() {
       setLoginIdSuccess(true);
       await refreshProfile();
     } catch (err: unknown) {
-      setLoginIdError(err instanceof Error ? err.message : 'Erreur');
+      setLoginIdError(getErrorMessage(err));
     } finally {
       setLoginIdLoading(false);
     }
@@ -74,15 +77,15 @@ export default function AccountSettings() {
     setPwdError('');
     setPwdSuccess(false);
     if (!currentPwd || !newPwd || !confirmPwd) {
-      setPwdError('Tous les champs sont requis');
+      setPwdError(t('account.password.allRequired'));
       return;
     }
     if (newPwd.length < 6) {
-      setPwdError('Le nouveau mot de passe doit contenir au moins 6 caractères');
+      setPwdError(t('account.password.tooShort'));
       return;
     }
     if (newPwd !== confirmPwd) {
-      setPwdError('Les mots de passe ne correspondent pas');
+      setPwdError(t('account.password.mismatch'));
       return;
     }
     setPwdLoading(true);
@@ -95,7 +98,7 @@ export default function AccountSettings() {
       setConfirmPwd('');
       await refreshProfile();
     } catch (err: unknown) {
-      setPwdError(err instanceof Error ? err.message : 'Erreur');
+      setPwdError(getErrorMessage(err));
     } finally {
       setPwdLoading(false);
     }
@@ -105,12 +108,12 @@ export default function AccountSettings() {
     <div className="space-y-6">
       <button onClick={() => window.history.back()} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        Retour
+        {t('account.back')}
       </button>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Paramètres du compte</h1>
-        <p className="text-slate-500 text-sm mt-1">Modifiez votre identifiant de connexion et votre mot de passe</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t('account.title')}</h1>
+        <p className="text-slate-500 text-sm mt-1">{t('account.subtitle')}</p>
       </div>
 
       {/* Change login ID */}
@@ -120,20 +123,20 @@ export default function AccountSettings() {
             <User className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-800">Identifiant de connexion</h2>
-            <p className="text-xs text-slate-400">Cet identifiant vous sert à vous connecter</p>
+            <h2 className="font-semibold text-slate-800">{t('account.loginId.sectionTitle')}</h2>
+            <p className="text-xs text-slate-400">{t('account.loginId.sectionSubtitle')}</p>
           </div>
         </div>
         <form onSubmit={handleLoginIdChange} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Nouvel identifiant</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">{t('account.loginId.label')}</label>
             <input
               type="text"
               value={loginId}
               onChange={e => setLoginId(e.target.value)}
               required
               className={inputCls}
-              placeholder="mon.identifiant"
+              placeholder={t('account.loginId.placeholder')}
             />
           </div>
           {loginIdError && (
@@ -145,7 +148,7 @@ export default function AccountSettings() {
           {loginIdSuccess && (
             <div className="flex items-center gap-1.5 text-sm text-green-600">
               <Check className="w-4 h-4 shrink-0" />
-              Identifiant modifié avec succès
+              {t('account.loginId.success')}
             </div>
           )}
           <button
@@ -153,7 +156,7 @@ export default function AccountSettings() {
             disabled={loginIdLoading}
             className="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
           >
-            {loginIdLoading ? 'Enregistrement...' : 'Modifier l\'identifiant'}
+            {loginIdLoading ? t('account.saving') : t('account.loginId.submit')}
           </button>
         </form>
       </div>
@@ -165,13 +168,13 @@ export default function AccountSettings() {
             <KeyRound className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-800">Mot de passe</h2>
-            <p className="text-xs text-slate-400">Choisissez un mot de passe que vous seul connaissez</p>
+            <h2 className="font-semibold text-slate-800">{t('account.password.sectionTitle')}</h2>
+            <p className="text-xs text-slate-400">{t('account.password.sectionSubtitle')}</p>
           </div>
         </div>
         <form onSubmit={handlePasswordChange} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Mot de passe actuel</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">{t('account.password.currentLabel')}</label>
             <input
               type="password"
               value={currentPwd}
@@ -183,7 +186,7 @@ export default function AccountSettings() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Nouveau mot de passe</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('account.password.newLabel')}</label>
               <input
                 type="password"
                 value={newPwd}
@@ -195,7 +198,7 @@ export default function AccountSettings() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Confirmer le nouveau</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('account.password.confirmLabel')}</label>
               <input
                 type="password"
                 value={confirmPwd}
@@ -216,7 +219,7 @@ export default function AccountSettings() {
           {pwdSuccess && (
             <div className="flex items-center gap-1.5 text-sm text-green-600">
               <Check className="w-4 h-4 shrink-0" />
-              Mot de passe modifié avec succès
+              {t('account.password.success')}
             </div>
           )}
           <button
@@ -224,7 +227,7 @@ export default function AccountSettings() {
             disabled={pwdLoading}
             className="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
           >
-            {pwdLoading ? 'Enregistrement...' : 'Modifier le mot de passe'}
+            {pwdLoading ? t('account.saving') : t('account.password.submit')}
           </button>
         </form>
       </div>
@@ -235,7 +238,7 @@ export default function AccountSettings() {
           onClick={signOut}
           className="text-sm text-red-600 hover:text-red-700 font-medium"
         >
-          Se déconnecter
+          {t('account.signOut')}
         </button>
       </div>
     </div>

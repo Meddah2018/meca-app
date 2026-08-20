@@ -7,6 +7,7 @@ import { Truck, Package, MapPin, Clock, CheckCircle2, Navigation, ArrowLeft, Set
 import { formatDeliveryDate } from '@/lib/delivery';
 import { fetchPublicProfiles } from '@/lib/publicProfiles';
 import AccountSettings from '@/components/AccountSettings';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EnrichedOrder extends Order {
   offer?: Offer;
@@ -22,14 +23,10 @@ const STATUS_STYLES: Record<string, string> = {
   in_delivery: 'bg-blue-50 text-blue-700',
   delivered: 'bg-green-50 text-green-700',
 };
-const STATUS_LABELS: Record<string, string> = {
-  to_pickup: 'À récupérer',
-  in_delivery: 'En livraison',
-  delivered: 'Livrée',
-};
 
 export default function DeliveryDashboard() {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('active');
   const [orders, setOrders] = useState<EnrichedOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,11 +73,11 @@ export default function DeliveryDashboard() {
   const delivered = orders.filter(o => o.delivery_status === 'delivered');
 
   const navItems = [
-    { id: 'dashboard', label: 'Accueil', icon: <Truck className="w-5 h-5" /> },
-    { id: 'active', label: 'Tournées actives', icon: <Truck className="w-5 h-5" /> },
-    { id: 'to_pickup', label: 'À récupérer', icon: <Package className="w-5 h-5" /> },
-    { id: 'delivered', label: 'Livrées', icon: <CheckCircle2 className="w-5 h-5" /> },
-    { id: 'settings', label: 'Paramètres', icon: <Settings className="w-5 h-5" /> },
+    { id: 'dashboard', label: t('delivery.navHome'), icon: <Truck className="w-5 h-5" /> },
+    { id: 'active', label: t('delivery.navActive'), icon: <Truck className="w-5 h-5" /> },
+    { id: 'to_pickup', label: t('delivery.navToPickup'), icon: <Package className="w-5 h-5" /> },
+    { id: 'delivered', label: t('delivery.navDelivered'), icon: <CheckCircle2 className="w-5 h-5" /> },
+    { id: 'settings', label: t('delivery.navSettings'), icon: <Settings className="w-5 h-5" /> },
   ];
 
   if (loading) {
@@ -94,25 +91,25 @@ export default function DeliveryDashboard() {
       {activeTab === 'dashboard' && (
         <div className="space-y-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Tableau de bord livreur</h1>
-            <p className="text-slate-500 text-sm mt-1">Gérez les livraisons en cours</p>
+            <h1 className="text-2xl font-bold text-slate-800">{t('delivery.dashboardTitle')}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t('delivery.dashboardSubtitle')}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <button onClick={() => setActiveTab('to_pickup')} className="bg-white rounded-xl border border-slate-200 p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5">
+            <button onClick={() => setActiveTab('to_pickup')} className="bg-white rounded-xl border border-slate-200 p-4 text-start transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2"><Package className="w-5 h-5" /></div>
               <div className="text-xl font-bold text-slate-800">{toPickup.length}</div>
-              <div className="text-xs text-slate-400">À récupérer</div>
+              <div className="text-xs text-slate-400">{t('delivery.navToPickup')}</div>
             </button>
-            <button onClick={() => setActiveTab('active')} className="bg-white rounded-xl border border-slate-200 p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5">
+            <button onClick={() => setActiveTab('active')} className="bg-white rounded-xl border border-slate-200 p-4 text-start transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2"><Truck className="w-5 h-5" /></div>
               <div className="text-xl font-bold text-slate-800">{inDelivery.length}</div>
-              <div className="text-xs text-slate-400">En livraison</div>
+              <div className="text-xs text-slate-400">{t('delivery.statusInDelivery')}</div>
             </button>
-            <button onClick={() => setActiveTab('delivered')} className="bg-white rounded-xl border border-slate-200 p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5">
+            <button onClick={() => setActiveTab('delivered')} className="bg-white rounded-xl border border-slate-200 p-4 text-start transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-2"><CheckCircle2 className="w-5 h-5" /></div>
               <div className="text-xl font-bold text-slate-800">{delivered.length}</div>
-              <div className="text-xs text-slate-400">Livrées</div>
+              <div className="text-xs text-slate-400">{t('delivery.navDelivered')}</div>
             </button>
           </div>
         </div>
@@ -122,22 +119,22 @@ export default function DeliveryDashboard() {
       <div className="space-y-4">
         <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-green-600 font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Retour
+          {t('delivery.back')}
         </button>
 
         <div>
           <h1 className="text-2xl font-bold text-slate-800">
-            {activeTab === 'active' ? 'Tournées actives' : activeTab === 'to_pickup' ? 'À récupérer' : 'Livrées'}
+            {activeTab === 'active' ? t('delivery.titleActive') : activeTab === 'to_pickup' ? t('delivery.titleToPickup') : t('delivery.titleDelivered')}
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            {activeTab === 'active' ? 'Livraisons en cours et à récupérer' : activeTab === 'to_pickup' ? 'Commandes en attente de récupération' : 'Commandes livrées'}
+            {activeTab === 'active' ? t('delivery.subtitleActive') : activeTab === 'to_pickup' ? t('delivery.subtitleToPickup') : t('delivery.subtitleDelivered')}
           </p>
         </div>
 
         {displayed.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
             <Truck className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p>Aucune commande dans cette catégorie.</p>
+            <p>{t('delivery.emptyState')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -155,6 +152,12 @@ export default function DeliveryDashboard() {
 }
 
 function DeliveryCard({ order, onUpdate }: { order: EnrichedOrder; onUpdate: (id: string, status: 'in_delivery' | 'delivered') => void }) {
+  const { t } = useLanguage();
+  const STATUS_LABELS: Record<string, string> = {
+    to_pickup: t('delivery.statusToPickup'),
+    in_delivery: t('delivery.statusInDelivery'),
+    delivered: t('delivery.statusDelivered'),
+  };
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4">
       <div className="flex items-start gap-3 mb-3">
@@ -162,11 +165,11 @@ function DeliveryCard({ order, onUpdate }: { order: EnrichedOrder; onUpdate: (id
           <Package className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-slate-800">{order.offer?.part_name ?? 'Pièce'}</div>
+          <div className="font-medium text-slate-800">{order.offer?.part_name ?? t('delivery.defaultPartName')}</div>
           <div className="text-sm text-slate-500">{order.offer?.part_brand} {order.offer?.reference ? `· ${order.offer.reference}` : ''}</div>
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-1 ${STATUS_STYLES[order.delivery_status]}`}>{STATUS_LABELS[order.delivery_status]}</span>
         </div>
-        <div className="text-right shrink-0">
+        <div className="text-end shrink-0">
           <div className="text-lg font-bold text-slate-800">{order.cash_amount} DA</div>
           {order.delivery_date && <div className="text-xs text-slate-400">{formatDeliveryDate(new Date(order.delivery_date))}</div>}
         </div>
@@ -176,16 +179,16 @@ function DeliveryCard({ order, onUpdate }: { order: EnrichedOrder; onUpdate: (id
         <div className="flex items-start gap-2">
           <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 text-xs font-bold">F</div>
           <div className="min-w-0">
-            <div className="text-xs text-slate-400 font-semibold uppercase">Récupération</div>
-            <div className="font-medium text-slate-700 truncate">{order.supplier_ref ?? 'Fournisseur'}</div>
+            <div className="text-xs text-slate-400 font-semibold uppercase">{t('delivery.pickupLabel')}</div>
+            <div className="font-medium text-slate-700 truncate">{order.supplier_ref ?? t('delivery.defaultSupplier')}</div>
             <div className="text-xs text-slate-500 truncate">{order.supplier_profile?.address}, {order.supplier_profile?.city}</div>
           </div>
         </div>
         <div className="flex items-start gap-2">
           <div className="w-7 h-7 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 text-xs font-bold">M</div>
           <div className="min-w-0">
-            <div className="text-xs text-slate-400 font-semibold uppercase">Livraison</div>
-            <div className="font-medium text-slate-700 truncate">{order.garage?.garage_name ?? order.mechanic_ref ?? 'Mécanicien'}</div>
+            <div className="text-xs text-slate-400 font-semibold uppercase">{t('delivery.deliveryLabel')}</div>
+            <div className="font-medium text-slate-700 truncate">{order.garage?.garage_name ?? order.mechanic_ref ?? t('delivery.defaultMechanic')}</div>
             <div className="text-xs text-slate-500 truncate">{order.garage?.address}, {order.garage?.city}</div>
           </div>
         </div>
@@ -202,13 +205,13 @@ function DeliveryCard({ order, onUpdate }: { order: EnrichedOrder; onUpdate: (id
         {order.delivery_status === 'to_pickup' && (
           <button onClick={() => onUpdate(order.id, 'in_delivery')} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5">
             <Navigation className="w-4 h-4" />
-            Démarrer la livraison
+            {t('delivery.startDelivery')}
           </button>
         )}
         {order.delivery_status === 'in_delivery' && (
           <button onClick={() => onUpdate(order.id, 'delivered')} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5">
             <CheckCircle2 className="w-4 h-4" />
-            Marquer livré
+            {t('delivery.markDelivered')}
           </button>
         )}
       </div>

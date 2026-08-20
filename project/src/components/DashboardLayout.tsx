@@ -1,6 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Wrench, Package, Truck, ShieldCheck, LogOut, Menu, X } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LogOut, Menu, X, Phone } from 'lucide-react';
 import { useState } from 'react';
+
+const SUPPORT_PHONE = '0792376341';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,26 +20,19 @@ const ACCENT = {
   slate: { bg: 'bg-slate-700', text: 'text-slate-700', border: 'border-slate-500', light: 'bg-slate-100' },
 };
 
-const ROLE_ICON = {
-  mechanic: <Wrench className="w-5 h-5" />,
-  supplier: <Package className="w-5 h-5" />,
-  delivery: <Truck className="w-5 h-5" />,
-  admin: <ShieldCheck className="w-5 h-5" />,
-};
-
-const ROLE_LABEL = {
-  mechanic: 'Mécanicien',
-  supplier: 'Fournisseur',
-  delivery: 'Livreur',
-  admin: 'Administrateur',
-};
-
 export default function DashboardLayout({ children, navItems, activeTab, onTabChange, accentColor }: DashboardLayoutProps) {
   const { profile, signOut } = useAuth();
+  const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
   const accent = ACCENT[accentColor];
 
   const role = profile?.role ?? 'mechanic';
+  const ROLE_LABEL = {
+    mechanic: t('layout.roleMechanic'),
+    supplier: t('layout.roleSupplier'),
+    delivery: t('layout.roleDelivery'),
+    admin: t('layout.roleAdmin'),
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -44,9 +40,7 @@ export default function DashboardLayout({ children, navItems, activeTab, onTabCh
       <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 shrink-0">
         <div className="p-5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 ${accent.bg} rounded-lg flex items-center justify-center text-white`}>
-              {ROLE_ICON[role]}
-            </div>
+            <img src="/icon_pieces_192.png" alt="MecaPieces" className="w-9 h-9 rounded-lg object-cover shrink-0" />
             <div>
               <div className="font-bold text-slate-800 leading-tight">MecaPieces</div>
               <div className="text-xs text-slate-400">{ROLE_LABEL[role]}</div>
@@ -76,25 +70,30 @@ export default function DashboardLayout({ children, navItems, activeTab, onTabCh
             <div className="text-sm font-medium text-slate-700 truncate">{profile?.role === 'admin' ? profile?.full_name : profile?.anonymous_reference}</div>
             <div className="text-xs text-slate-400 truncate">{ROLE_LABEL[role]}</div>
           </div>
+          <a
+            href={`tel:${SUPPORT_PHONE}`}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+          >
+            <Phone className="w-4 h-4" />
+            <span className="truncate">{t('layout.supportLabel')}: {SUPPORT_PHONE}</span>
+          </a>
           <button
             onClick={signOut}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Déconnexion
+            {t('layout.logout')}
           </button>
         </div>
       </aside>
 
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 px-4 h-14 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 start-0 end-0 z-30 bg-white border-b border-slate-200 px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 ${accent.bg} rounded-lg flex items-center justify-center text-white`}>
-            {ROLE_ICON[role]}
-          </div>
+          <img src="/icon_pieces_192.png" alt="MecaPieces" className="w-8 h-8 rounded-lg object-cover shrink-0" />
           <span className="font-bold text-slate-800">MecaPieces</span>
         </div>
-        <button onClick={() => setMobileOpen(true)} className="p-2 -mr-2 text-slate-600">
+        <button onClick={() => setMobileOpen(true)} className="p-2 -me-2 text-slate-600">
           <Menu className="w-5 h-5" />
         </button>
       </div>
@@ -106,9 +105,7 @@ export default function DashboardLayout({ children, navItems, activeTab, onTabCh
           <aside className="relative w-72 bg-white drawer-panel flex flex-col">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 ${accent.bg} rounded-lg flex items-center justify-center text-white`}>
-                  {ROLE_ICON[role]}
-                </div>
+                <img src="/icon_pieces_192.png" alt="MecaPieces" className="w-9 h-9 rounded-lg object-cover shrink-0" />
                 <div>
                   <div className="font-bold text-slate-800 leading-tight">MecaPieces</div>
                   <div className="text-xs text-slate-400">{ROLE_LABEL[role]}</div>
@@ -137,12 +134,19 @@ export default function DashboardLayout({ children, navItems, activeTab, onTabCh
                 <div className="text-sm font-medium text-slate-700 truncate">{profile?.role === 'admin' ? profile?.full_name : profile?.anonymous_reference}</div>
                 <div className="text-xs text-slate-400 truncate">{ROLE_LABEL[role]}</div>
               </div>
+              <a
+                href={`tel:${SUPPORT_PHONE}`}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+              >
+                <Phone className="w-4 h-4" />
+                <span className="truncate">{t('layout.supportLabel')}: {SUPPORT_PHONE}</span>
+              </a>
               <button
                 onClick={signOut}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                Déconnexion
+                {t('layout.logout')}
               </button>
             </div>
           </aside>

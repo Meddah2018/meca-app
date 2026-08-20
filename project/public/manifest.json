@@ -1,0 +1,17 @@
+{
+  "name": "MécaPièces",
+  "short_name": "MécaPièces",
+  "description": "Mise en relation mécaniciens et fournisseurs de pièces détachées auto en Algérie",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon_pieces_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon_pieces_192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon_pieces_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon_pieces_512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

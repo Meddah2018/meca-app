@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X, Check, ChevronDown } from 'lucide-react';
 import { PART_CATEGORIES, searchParts } from '@/lib/partsCatalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PartSearchInputProps {
   value: string;
@@ -9,6 +10,7 @@ interface PartSearchInputProps {
 }
 
 export default function PartSearchInput({ value, onChange, required }: PartSearchInputProps) {
+  const { t } = useLanguage();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -21,7 +23,7 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
     if (value) {
       setStep('search');
     }
-  }, []);
+  }, [value]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -92,7 +94,7 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
           }`}
         >
           <span className={categoryLabel ? 'text-slate-800' : 'text-slate-400'}>
-            {categoryLabel ?? 'Sélectionner une catégorie'}
+            {categoryLabel ?? t('widgets.partSearchInput.selectCategory')}
           </span>
           <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
@@ -112,7 +114,7 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
             </div>
           ) : (
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="text"
@@ -121,10 +123,10 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
                 onFocus={() => setOpen(true)}
                 onKeyDown={onKeyDown}
                 required={required}
-                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
-                placeholder={`Rechercher dans ${categoryLabel ?? 'la catégorie'}…`}
+                className="w-full ps-9 pe-9 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
+                placeholder={`${t('widgets.partSearchInput.searchInPrefix')} ${categoryLabel ?? t('widgets.partSearchInput.category')}…`}
               />
-              <button type="button" onClick={resetCategory} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600">
+              <button type="button" onClick={resetCategory} className="absolute end-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -139,7 +141,7 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
               key={cat.id}
               type="button"
               onClick={() => selectCategory(cat.id)}
-              className="w-full text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors first:rounded-t-xl last:rounded-b-xl"
+              className="w-full text-start px-3 py-2.5 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors first:rounded-t-xl last:rounded-b-xl"
             >
               {cat.label}
             </button>
@@ -151,7 +153,7 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
         <div className="absolute z-50 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-lg max-h-60 overflow-y-auto">
           {suggestions.length === 0 ? (
             <div className="px-3 py-6 text-center text-sm text-slate-400">
-              {query ? 'Aucune pièce trouvée' : 'Commencez à taper pour voir les suggestions'}
+              {query ? t('widgets.partSearchInput.noPartFound') : t('widgets.partSearchInput.startTyping')}
             </div>
           ) : (
             suggestions.map((part, i) => (
@@ -160,7 +162,7 @@ export default function PartSearchInput({ value, onChange, required }: PartSearc
                 type="button"
                 onMouseEnter={() => setHighlight(i)}
                 onClick={() => pickPart(part)}
-                className={`w-full text-left px-3 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
+                className={`w-full text-start px-3 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
                   i === highlight ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >

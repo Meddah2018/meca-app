@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AdminUserBody {
-  action: "create" | "update" | "reset_password" | "toggle_active" | "delete" | "self_update" | "self_password";
+  action: "create" | "update" | "reset_password" | "toggle_active" | "delete" | "self_update" | "self_password" | "impersonate";
   // create / update
   login_id?: string;
   first_name?: string;
@@ -86,6 +86,9 @@ Deno.serve(async (req: Request) => {
       }
       case "delete": {
         return await handleDelete(adminClient, body);
+      }
+      case "impersonate": {
+        return await handleImpersonate(adminClient, body, userData.user.id);
       }
       default:
         return json({ error: "Action inconnue" }, 400);
@@ -325,4 +328,37 @@ async function handleDelete(
   const { error } = await client.auth.admin.deleteUser(user_id);
   if (error) return json({ error: error.message }, 500);
   return json({ ok: true });
+}
+
+async function handleImpersonate(
+  client: ReturnType<typeof createClient>,
+  body: AdminUserBody,
+  adminId: string
+) {
+  const { user_id } = body;
+  if (!user_id) return json({ error: "user_id requis" }, 400);
+  if (user_id === adminId) return json({ error: "Impossible de s'impersonner soi-même" }, 400);
+
+  const { data: target, error: profErr } = await client
+    .from("profiles")
+    .select("login_id, role, is_active")
+    .eq("id", user_id)
+    .maybeSingle();
+  if (profErr || !target) return json({ error: "Utilisateur introuvable" }, 404);
+  if (target.role === "admin") return json({ error: "Impossible de se connecter en tant qu'un autre administrateur" }, 403);
+  if (!target.login_id) return json({ error: "Cet utilisateur n'a pas d'identifiant de connexion" }, 400);
+  if (!target.is_active) return json({ error: "Ce compte est désactivé" }, 400);
+
+  const syntheticEmail = `${target.login_id}@mecapieces.local`;
+  const { data: linkData, error: linkErr } = await client.auth.admin.generateLink({
+    type: "magiclink",
+    email: syntheticEmail,
+  });
+  if (linkErr || !linkData?.properties?.hashed_token) {
+    return json({ error: linkErr?.message ?? "Impossible de générer l'accès temporaire" }, 500);
+  }
+
+  await client.from("impersonation_log").insert({ admin_id: adminId, target_user_id: user_id });
+
+  return json({ token_hash: linkData.properties.hashed_token, login_id: target.login_id });
 }
