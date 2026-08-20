@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Profile, Role, Request, Offer, GarageProfile, SupplierProfile } from '@/lib/database.types';
+import type { Profile, Role, GarageProfile, SupplierProfile } from '@/lib/database.types';
 import {
   Search, UserPlus, Pencil, KeyRound, Power, Trash2, X, Filter, Users, Package, Truck, ShieldCheck, ArrowLeft,
   MapPin, Phone, Calendar, Tag, LogIn,
@@ -337,8 +337,6 @@ function RoleUserTable({ users, busy, onView, onEdit, onReset, onToggleActive, o
   );
 }
 
-const REQUEST_STATUS_KEYS: Record<string, string> = { open: 'open', offer_selected: 'offerSelected', closed: 'closed' };
-
 function UserDetailModal({ profile, busy, error, canImpersonate, onClose, onEdit, onReset, onToggleActive, onDelete, onImpersonate }: {
   profile: Profile;
   busy: boolean;
@@ -355,29 +353,19 @@ function UserDetailModal({ profile, busy, error, canImpersonate, onClose, onEdit
   const [loading, setLoading] = useState(true);
   const [garage, setGarage] = useState<GarageProfile | null>(null);
   const [supplierProfile, setSupplierProfile] = useState<SupplierProfile | null>(null);
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
 
   useEffect(() => {
     let active = true;
     (async () => {
       setLoading(true);
       if (profile.role === 'mechanic') {
-        const [{ data: gar }, { data: reqs }] = await Promise.all([
-          supabase.from('garage_profiles').select('*').eq('user_id', profile.id).maybeSingle(),
-          supabase.from('requests').select('*').eq('mechanic_id', profile.id).order('created_at', { ascending: false }).limit(10),
-        ]);
+        const { data: gar } = await supabase.from('garage_profiles').select('*').eq('user_id', profile.id).maybeSingle();
         if (!active) return;
         setGarage(gar ?? null);
-        setRequests(reqs ?? []);
       } else if (profile.role === 'supplier') {
-        const [{ data: sup }, { data: offs }] = await Promise.all([
-          supabase.from('supplier_profiles').select('*').eq('user_id', profile.id).maybeSingle(),
-          supabase.from('offers').select('*').eq('supplier_id', profile.id).order('created_at', { ascending: false }).limit(10),
-        ]);
+        const { data: sup } = await supabase.from('supplier_profiles').select('*').eq('user_id', profile.id).maybeSingle();
         if (!active) return;
         setSupplierProfile(sup ?? null);
-        setOffers(offs ?? []);
       }
       if (active) setLoading(false);
     })();

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { GarageProfile } from '@/lib/database.types';
-import { MapPin, Phone, Building2, ChevronRight } from 'lucide-react';
+import { MapPin, Building2, ChevronRight } from 'lucide-react';
 import { getErrorMessage } from '@/lib/errors';
 import { useLanguage } from '@/contexts/LanguageContext';
 

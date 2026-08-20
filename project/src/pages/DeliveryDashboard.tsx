@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Order, Offer, Profile, GarageProfile, SupplierProfile } from '@/lib/database.types';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Truck, Package, MapPin, Clock, CheckCircle2, Navigation, ArrowLeft, Settings } from 'lucide-react';
+import { Truck, Package, CheckCircle2, Navigation, ArrowLeft, Settings } from 'lucide-react';
 import { formatDeliveryDate } from '@/lib/delivery';
 import { fetchPublicProfiles } from '@/lib/publicProfiles';
 import AccountSettings from '@/components/AccountSettings';
@@ -25,7 +24,6 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function DeliveryDashboard() {
-  const { profile } = useAuth();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('active');
   const [orders, setOrders] = useState<EnrichedOrder[]>([]);

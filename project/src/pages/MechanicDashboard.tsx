@@ -80,17 +80,6 @@ interface HistoryItem {
   rating: Rating | null;
 }
 
-const STATUS_LABELS = {
-  open: 'Ouverte',
-  offer_selected: 'Offre choisie',
-  closed: 'Clôturée',
-} as const;
-
-const URGENCY_LABELS = {
-  normal: 'Normal',
-  urgent: 'Urgent',
-} as const;
-
 type PeriodFilter = 'all' | 'today' | 'week' | 'month' | 'year' | 'custom';
 
 export default function MechanicDashboard() {
@@ -102,7 +91,7 @@ export default function MechanicDashboard() {
   const [loading, setLoading] = useState(true);
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<RequestWithOffers | null>(null);
-  const [selectedOffer, setSelectedOffer] = useState<OfferWithDetails | null>(null);
+  const [, setSelectedOffer] = useState<OfferWithDetails | null>(null);
   const [requestsView, setRequestsView] = useState<'all' | 'open' | 'pending' | 'selected'>('all');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -307,7 +296,7 @@ export default function MechanicDashboard() {
       const selectedAt = new Date();
       const deliveryDate = computeDeliveryDate(selectedAt);
 
-      const { data: order, error: orderError } = await supabase
+      const { error: orderError } = await supabase
         .from('orders')
         .insert({
           offer_id: offer.id,

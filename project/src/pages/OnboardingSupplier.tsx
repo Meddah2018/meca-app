@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { SupplierProfile } from '@/lib/database.types';
-import { MapPin, Building2, ChevronRight, Package, Car } from 'lucide-react';
+import { MapPin, ChevronRight, Package, Car } from 'lucide-react';
 import BrandMultiSelect from '@/components/BrandMultiSelect';
 import { getErrorMessage } from '@/lib/errors';
 import { useLanguage } from '@/contexts/LanguageContext';

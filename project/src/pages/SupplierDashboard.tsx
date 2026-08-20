@@ -7,7 +7,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import BrandMultiSelect from '@/components/BrandMultiSelect';
 import PartSearchInput from '@/components/PartSearchInput';
 import { getBrand } from '@/lib/vehiclesCatalog';
-import { Search, Package, CheckCircle2, MapPin, Tag, Truck, X, AlertCircle, Send, CreditCard as Edit3, Wallet, TrendingUp, History, Filter, Calendar, Star, Car, Settings as SettingsIcon, ArrowLeft, Pencil, Award } from 'lucide-react';
+import { Search, Package, CheckCircle2, MapPin, Tag, Truck, X, AlertCircle, Send, Wallet, TrendingUp, History, Filter, Calendar, Star, Car, Settings as SettingsIcon, ArrowLeft, Pencil, Award } from 'lucide-react';
 import { fetchPublicProfiles } from '@/lib/publicProfiles';
 import AccountSettings from '@/components/AccountSettings';
 import { getErrorMessage } from '@/lib/errors';
@@ -145,9 +145,11 @@ export default function SupplierDashboard() {
       const offersFromClosed = offers.filter(o => closedReqIds.has(o.request_id));
 
       const offerIdsForOrders = offersFromClosed.map(o => o.id);
-      const { data: deliveredOrders } = offerIdsForOrders.length > 0
-        ? await supabase.from('orders').select('*').in('offer_id', offerIdsForOrders).eq('delivery_status', 'delivered')
-        : Promise.resolve({ data: [], error: null });
+      let deliveredOrders: Order[] | null = [];
+      if (offerIdsForOrders.length > 0) {
+        const ordersRes = await supabase.from('orders').select('*').in('offer_id', offerIdsForOrders).eq('delivery_status', 'delivered');
+        deliveredOrders = ordersRes.data;
+      }
 
       const deliveredOfferIds = new Set((deliveredOrders ?? []).map((o: { offer_id: string }) => o.offer_id));
       const relevantOffers = offersFromClosed.filter(o => deliveredOfferIds.has(o.id));
@@ -715,7 +717,7 @@ function SupplierHistoryView({ items, loading, searchQuery, setSearchQuery, peri
 
 function SupplierHistoryCard({ item, onOpen }: { item: SupplierHistoryItem; onOpen: () => void }) {
   const { t } = useLanguage();
-  const { offer, request, order, mechanic, rating } = item;
+  const { offer, request, order, rating } = item;
   const createdDate = new Date(offer.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const isDelivered = order?.delivery_status === 'delivered';
   const isRejected = offer.status === 'rejected';
@@ -780,7 +782,7 @@ function SupplierHistoryCard({ item, onOpen }: { item: SupplierHistoryItem; onOp
 
 function SupplierHistoryDetailModal({ item, onClose }: { item: SupplierHistoryItem; onClose: () => void }) {
   const { t } = useLanguage();
-  const { offer, request, order, mechanic, rating } = item;
+  const { offer, request, order, rating } = item;
   const createdDate = new Date(offer.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: 'long', year: 'numeric' });
   const isDelivered = order?.delivery_status === 'delivered';
   const isRejected = offer.status === 'rejected';

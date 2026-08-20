@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile, Request, Offer, Order, Reversement } from '@/lib/database.types';
 import DashboardLayout from '@/components/DashboardLayout';
-import { ShieldCheck, Users, Package, Truck, Wallet, TrendingUp, CheckCircle2, X, AlertCircle, ShoppingBag, History, Filter, Calendar, Tag, MapPin, ChevronRight, Search, Star, ArrowLeft, UserPlus, Pencil, KeyRound, Power, Trash2, Settings, CheckCircle, Clock, Inbox } from 'lucide-react';
+import { Users, Package, Truck, Wallet, TrendingUp, X, AlertCircle, ShoppingBag, History, Filter, Calendar, Tag, MapPin, ChevronRight, Search, ArrowLeft, Settings, CheckCircle, Clock, Inbox } from 'lucide-react';
 import UserManagement from '@/components/UserManagement';
 import AccountSettings from '@/components/AccountSettings';
 
@@ -43,7 +42,6 @@ interface AdminHistoryItem {
 type PeriodFilter = 'all' | 'today' | 'week' | 'month' | 'year' | 'custom';
 
 export default function AdminDashboard() {
-  const { profile } = useAuth();
   const { t } = useLanguage();
   const STATUS_LABELS = getStatusLabels(t);
   const [activeTab, setActiveTab] = useState('dashboard');
