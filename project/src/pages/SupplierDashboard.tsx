@@ -385,7 +385,7 @@ export default function SupplierDashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-800 truncate">{offer.part_name}</div>
                       <div className="text-sm text-slate-500 truncate">
-                        {offer.part_brand} · {offer.displayed_price} DA · {offer.delivery_estimate}
+                        {offer.part_brand} · {offer.displayed_price} DA{offer.delivery_estimate ? ` · ${offer.delivery_estimate}` : ''}
                       </div>
                       {order && (
                         <div className="text-xs mt-0.5">
@@ -977,7 +977,6 @@ function OfferFormModal({ request, existing, onClose, onSubmitted }: { request: 
     part_brand: existing?.part_brand ?? '',
     reference: existing?.reference ?? '',
     net_price: existing?.net_price?.toString() ?? '',
-    delivery_estimate: existing?.delivery_estimate ?? '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -994,7 +993,6 @@ function OfferFormModal({ request, existing, onClose, onSubmitted }: { request: 
           part_brand: form.part_brand,
           reference: form.reference || null,
           net_price: parseFloat(form.net_price) || 0,
-          delivery_estimate: form.delivery_estimate,
           updated_at: new Date().toISOString(),
         }).eq('id', existing.id);
         if (err) throw err;
@@ -1006,7 +1004,6 @@ function OfferFormModal({ request, existing, onClose, onSubmitted }: { request: 
           part_brand: form.part_brand,
           reference: form.reference || null,
           net_price: parseFloat(form.net_price) || 0,
-          delivery_estimate: form.delivery_estimate,
         });
         if (err) throw err;
       }
@@ -1043,10 +1040,6 @@ function OfferFormModal({ request, existing, onClose, onSubmitted }: { request: 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">{t('supplier.form.price')}</label>
             <input type="number" step="0.01" value={form.net_price} onChange={e => setForm(f => ({ ...f, net_price: e.target.value }))} required min="0" className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-400 outline-none" placeholder="3500" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">{t('supplier.form.deliveryEstimate')}</label>
-            <input type="text" value={form.delivery_estimate} onChange={e => setForm(f => ({ ...f, delivery_estimate: e.target.value }))} required className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-400 outline-none" placeholder="24-48h" />
           </div>
           {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">{error}</div>}
           <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-xl transition-colors">
