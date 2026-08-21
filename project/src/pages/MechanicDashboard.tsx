@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import type { Request, Offer, Order, Profile, GarageProfile, Rating } from '@/lib/database.types';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Package, Clock, CheckCircle2, Plus, Search, MapPin, Calendar, Star, Truck, X, AlertCircle, Upload, History, Filter, Tag, FileText, Trash2, ArrowLeft, Settings, Mic } from 'lucide-react';
-import { computeDeliveryDate, formatDeliveryDate } from '@/lib/delivery';
+import { formatDeliveryDate } from '@/lib/delivery';
 import { fetchPublicProfiles } from '@/lib/publicProfiles';
 import PartSearchInput from '@/components/PartSearchInput';
 import AccountSettings from '@/components/AccountSettings';
@@ -298,38 +298,13 @@ export default function MechanicDashboard() {
     setActionError('');
     setActionLoading(true);
     try {
-      const selectedAt = new Date();
-      const deliveryDate = computeDeliveryDate(selectedAt);
-
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          offer_id: offer.id,
-          mechanic_id: profile.id,
-          supplier_id: offer.supplier_id,
-          cash_amount: offer.displayed_price,
-          delivery_date: deliveryDate.toISOString().split('T')[0],
-        })
-        .select('*')
-        .single();
-      if (orderError) throw orderError;
-
-      const { error: offerErr } = await supabase
-        .from('offers')
-        .update({ status: 'selected' })
-        .eq('id', offer.id);
-      if (offerErr) throw offerErr;
-
-      await supabase
-        .from('offers')
-        .update({ status: 'rejected' })
-        .neq('id', offer.id)
-        .eq('request_id', selectedRequest.id);
-
-      await supabase
-        .from('requests')
-        .update({ status: 'offer_selected' })
-        .eq('id', selectedRequest.id);
+      // cash_amount / supplier_id / delivery_date are now computed server-side
+      // by select_offer (SECURITY DEFINER) — see
+      // supabase/migrations/20260821100000_secure_offer_selection.sql. The RPC
+      // also flips the offer/request statuses atomically, replacing the 4
+      // separate client calls this used to make.
+      const { error: rpcError } = await supabase.rpc('select_offer', { p_offer_id: offer.id });
+      if (rpcError) throw rpcError;
 
       setSelectedOffer(null);
       setSelectedRequest(null);
