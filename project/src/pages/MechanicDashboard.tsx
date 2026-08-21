@@ -14,6 +14,11 @@ import { VEHICLE_CATALOG, normalize } from '@/lib/vehiclesCatalog';
 import { getErrorMessage } from '@/lib/errors';
 import { updateAppBadge } from '@/lib/appBadge';
 
+// carte-grise / part-photos are private buckets; the signed URL is minted once at
+// upload time and stored as-is (requests.carte_grise_url etc. hold a full URL, not
+// a path), so the TTL needs to outlive the request's entire history lifetime.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365 * 5; // 5 ans
+
 // Minimal typing for the (non-standard, Chrome-only) Web Speech API — not in lib.dom.d.ts
 interface SpeechRecognitionLike extends EventTarget {
   lang: string;
@@ -1189,8 +1194,9 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
       const filePath = `carte-grise/${fileName}`;
       const { error: uploadErr } = await supabase.storage.from('carte-grise').upload(filePath, file, { cacheControl: '3600', upsert: false });
       if (uploadErr) throw uploadErr;
-      const { data: urlData } = supabase.storage.from('carte-grise').getPublicUrl(filePath);
-      setForm(f => ({ ...f, carte_grise_url: urlData.publicUrl }));
+      const { data: urlData, error: signErr } = await supabase.storage.from('carte-grise').createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+      if (signErr || !urlData) throw signErr ?? new Error('Signed URL generation failed');
+      setForm(f => ({ ...f, carte_grise_url: urlData.signedUrl }));
       setPreview(URL.createObjectURL(file));
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('mechanic.errors.imageUploadError')));
@@ -1221,8 +1227,9 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
       const filePath = `part-photos/${fileName}`;
       const { error: uploadErr } = await supabase.storage.from('part-photos').upload(filePath, file, { cacheControl: '3600', upsert: false });
       if (uploadErr) throw uploadErr;
-      const { data: urlData } = supabase.storage.from('part-photos').getPublicUrl(filePath);
-      setPartPhotos(prev => [...prev, { url: urlData.publicUrl, preview: URL.createObjectURL(file) }]);
+      const { data: urlData, error: signErr } = await supabase.storage.from('part-photos').createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+      if (signErr || !urlData) throw signErr ?? new Error('Signed URL generation failed');
+      setPartPhotos(prev => [...prev, { url: urlData.signedUrl, preview: URL.createObjectURL(file) }]);
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('mechanic.errors.imageUploadError')));
     } finally {
@@ -1250,8 +1257,9 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
       const filePath = `reference/${fileName}`;
       const { error: uploadErr } = await supabase.storage.from('part-photos').upload(filePath, file, { cacheControl: '3600', upsert: false });
       if (uploadErr) throw uploadErr;
-      const { data: urlData } = supabase.storage.from('part-photos').getPublicUrl(filePath);
-      setReferencePhotoUrl(urlData.publicUrl);
+      const { data: urlData, error: signErr } = await supabase.storage.from('part-photos').createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+      if (signErr || !urlData) throw signErr ?? new Error('Signed URL generation failed');
+      setReferencePhotoUrl(urlData.signedUrl);
       setReferencePreview(URL.createObjectURL(file));
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('mechanic.errors.imageUploadError')));
