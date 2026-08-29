@@ -24,7 +24,7 @@ export default function LanguageSwitcher() {
   const current = OPTIONS.find(o => o.code === language) ?? OPTIONS[0];
 
   return (
-    <div ref={ref} className="fixed top-16 end-3 z-[9999] lg:top-3">
+    <div ref={ref} className="fixed top-16 end-3 z-40 lg:top-3">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
