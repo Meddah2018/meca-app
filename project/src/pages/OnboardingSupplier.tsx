@@ -95,7 +95,7 @@ export default function OnboardingSupplier({ onComplete }: OnboardingSupplierPro
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="auth-card w-full max-w-lg bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
           <Package className="w-8 h-8 mb-2" />
           <h1 className="text-xl font-bold">{t('onboarding.supplier.title')}</h1>

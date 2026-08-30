@@ -300,3 +300,19 @@ span[class*="rounded-full"][class*="bg-orange-50"] {
 #language-switcher-panel .bg-slate-100 {
   background-color: #f1f5f9 !important;
 }
+
+/* Login, forced password change and first-run onboarding: solid white input
+   boxes with a clearly visible border and black text, so a brand-new user can
+   see the fields and read exactly what they type. Overrides the generic
+   translucent-white-on-glass input rule above. */
+.auth-card input,
+.auth-card select,
+.auth-card textarea {
+  background-color: #ffffff !important;
+  border-color: #64748b !important;
+  color: #000000 !important;
+}
+.auth-card input::placeholder,
+.auth-card textarea::placeholder {
+  color: #64748b !important;
+}

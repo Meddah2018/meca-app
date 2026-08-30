@@ -64,7 +64,7 @@ export default function OnboardingMechanic({ onComplete }: OnboardingMechanicPro
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="auth-card w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
           <Building2 className="w-8 h-8 mb-2" />
           <h1 className="text-xl font-bold">{t('onboarding.mechanic.title')}</h1>

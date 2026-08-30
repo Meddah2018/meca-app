@@ -118,7 +118,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
           <p className="text-slate-400 text-sm">{t('auth.tagline')}</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="auth-card bg-white rounded-2xl shadow-2xl overflow-hidden">
           {needsPasswordChange ? (
             <form onSubmit={handleChangePassword} className="p-6 space-y-4">
               <div className="text-center mb-2">
