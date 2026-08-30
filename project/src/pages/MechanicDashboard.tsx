@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import type { Request, Offer, Order, Profile, GarageProfile, Rating } from '@/lib/database.types';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Package, Clock, CheckCircle2, Plus, Search, MapPin, Calendar, Star, Truck, X, AlertCircle, Upload, History, Filter, Tag, FileText, Trash2, ArrowLeft, Settings, Mic } from 'lucide-react';
+import { Package, Clock, CheckCircle2, Plus, Minus, Search, MapPin, Calendar, Star, Truck, X, AlertCircle, Upload, History, Filter, Tag, FileText, Trash2, ArrowLeft, Settings, Mic } from 'lucide-react';
 import { formatDeliveryDate } from '@/lib/delivery';
 import { fetchPublicProfiles } from '@/lib/publicProfiles';
 import PartSearchInput from '@/components/PartSearchInput';
@@ -1274,7 +1274,7 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
         urgency: form.urgency,
         part_name: form.part_name,
         part_category: form.part_category || null,
-        quantity: form.quantity,
+        quantity: Math.max(1, form.quantity),
         carte_grise_url: form.carte_grise_url,
         part_photo_urls: partPhotos.map(p => p.url),
         reference_photo_url: referencePhotoUrl || null,
@@ -1296,8 +1296,8 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-slate-600 mb-1">{t('mechanic.common.partName')} <span className="text-red-500">*</span></label>
               <PartSearchInput
                 value={form.part_name}
@@ -1307,13 +1307,37 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">{t('mechanic.common.quantity')}</label>
-              <input
-                type="number"
-                min={1}
-                value={form.quantity}
-                onChange={e => setForm(f => ({ ...f, quantity: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none"
-              />
+              <div className="flex items-stretch rounded-lg border border-slate-200 focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-orange-400 overflow-hidden">
+                <button
+                  type="button"
+                  aria-label={t('mechanic.common.quantityDecrease')}
+                  onClick={() => setForm(f => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                  disabled={form.quantity <= 1}
+                  className="shrink-0 px-3 py-2.5 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={form.quantity === 0 ? '' : String(form.quantity)}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g, '');
+                    setForm(f => ({ ...f, quantity: digits === '' ? 0 : parseInt(digits, 10) }));
+                  }}
+                  onBlur={() => setForm(f => ({ ...f, quantity: Math.max(1, f.quantity) }))}
+                  className="flex-1 min-w-0 w-full px-2 py-2.5 text-center text-sm outline-none"
+                />
+                <button
+                  type="button"
+                  aria-label={t('mechanic.common.quantityIncrease')}
+                  onClick={() => setForm(f => ({ ...f, quantity: Math.max(1, f.quantity) + 1 }))}
+                  className="shrink-0 px-3 py-2.5 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
           <div>
