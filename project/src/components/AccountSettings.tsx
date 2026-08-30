@@ -30,7 +30,7 @@ const inputCls = 'w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm 
 export default function AccountSettings() {
   const { profile, refreshProfile, signOut } = useAuth();
   const { t } = useLanguage();
-  const [loginId, setLoginId] = useState(profile?.login_id ?? '');
+  const [loginId, setLoginId] = useState('');
   const [loginIdError, setLoginIdError] = useState('');
   const [loginIdSuccess, setLoginIdSuccess] = useState(false);
   const [loginIdLoading, setLoginIdLoading] = useState(false);
@@ -55,7 +55,7 @@ export default function AccountSettings() {
       setLoginIdError(t('account.loginId.required'));
       return;
     }
-    if (loginId.trim().toLowerCase() === profile?.login_id) {
+    if (loginId.trim().toLowerCase() === (profile?.login_id ?? '').trim().toLowerCase()) {
       setLoginIdError(t('account.loginId.unchanged'));
       return;
     }
@@ -64,6 +64,7 @@ export default function AccountSettings() {
       const token = await getToken();
       await callAdminFn({ action: 'self_update', login_id: loginId.trim() }, token);
       setLoginIdSuccess(true);
+      setLoginId('');
       await refreshProfile();
     } catch (err: unknown) {
       setLoginIdError(getErrorMessage(err));
@@ -128,6 +129,9 @@ export default function AccountSettings() {
           </div>
         </div>
         <form onSubmit={handleLoginIdChange} className="space-y-3">
+          <div className="text-sm text-slate-500">
+            {t('account.loginId.current')} <span className="font-semibold text-slate-800">{profile?.login_id ?? '—'}</span>
+          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">{t('account.loginId.label')}</label>
             <input
