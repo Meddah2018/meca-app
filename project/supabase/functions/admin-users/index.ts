@@ -106,22 +106,40 @@ function json(data: unknown, status = 200) {
   });
 }
 
+// A login_id is used verbatim as the local-part of the synthetic auth email
+// `<login_id>@mecapieces.local`. GoTrue rejects anything that is not a valid
+// address ("Unable to validate email address: invalid format"), which would
+// desync profiles from auth.users. Allow lowercase letters, digits and . _ -
+// only, 3–64 chars, starting and ending with a letter or digit.
+const LOGIN_ID_RE = /^[a-z0-9][a-z0-9._-]{1,62}[a-z0-9]$/;
+
+function normalizeLoginId(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const v = raw.trim().toLowerCase();
+  return LOGIN_ID_RE.test(v) ? v : null;
+}
+
+function syntheticEmailFor(loginId: string): string {
+  return `${loginId}@mecapieces.local`;
+}
+
+const LOGIN_ID_ERROR =
+  "Identifiant invalide : 3 à 64 caractères, lettres minuscules, chiffres, . _ - uniquement (ni espace ni accent).";
+
 async function handleSelfUpdate(
   client: ReturnType<typeof createClient>,
   body: AdminUserBody,
   userId: string
 ) {
-  const { login_id } = body;
-  if (!login_id || !login_id.trim()) {
-    return json({ error: "Identifiant requis" }, 400);
+  const newLoginId = normalizeLoginId(body.login_id);
+  if (!newLoginId) {
+    return json({ error: LOGIN_ID_ERROR }, 400);
   }
-
-  const newLoginId = login_id.trim().toLowerCase();
 
   // Check if login_id is already taken by someone else
   const { data: existing } = await client
     .from("profiles")
-    .select("id")
+    .select("id, login_id")
     .eq("login_id", newLoginId)
     .neq("id", userId)
     .maybeSingle();
@@ -129,26 +147,46 @@ async function handleSelfUpdate(
     return json({ error: "Cet identifiant de connexion existe déjà" }, 409);
   }
 
-  // Update login_id in profiles (RLS allows self-update)
+  // Read the current login_id so we can roll back if one of the two writes fails.
+  const { data: current } = await client
+    .from("profiles")
+    .select("login_id")
+    .eq("id", userId)
+    .maybeSingle();
+  const previousLoginId = current?.login_id ?? null;
+
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const syntheticEmail = syntheticEmailFor(newLoginId);
+
+  // Update the synthetic email in auth.users FIRST. email_confirm:true keeps the
+  // address confirmed — there is no real inbox for @mecapieces.local, so without
+  // it GoTrue would flag the account as pending an email confirmation that can
+  // never arrive, locking the user out and breaking admin impersonation.
+  const { error: authErr } = await adminClient.auth.admin.updateUserById(userId, {
+    email: syntheticEmail,
+    email_confirm: true,
+  });
+  if (authErr) {
+    return json({ error: authErr.message }, 500);
+  }
+
+  // Then update login_id in profiles (RLS allows self-update).
   const { error: profErr } = await client
     .from("profiles")
     .update({ login_id: newLoginId })
     .eq("id", userId);
   if (profErr) {
+    // Roll the auth email back so profiles and auth.users stay in sync.
+    if (previousLoginId) {
+      await adminClient.auth.admin.updateUserById(userId, {
+        email: syntheticEmailFor(previousLoginId),
+        email_confirm: true,
+      });
+    }
     return json({ error: profErr.message }, 500);
-  }
-
-  // Update the synthetic email in auth.users via admin client
-  const adminClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-  const syntheticEmail = `${newLoginId}@mecapieces.local`;
-  const { error: authErr } = await adminClient.auth.admin.updateUserById(userId, {
-    email: syntheticEmail,
-  });
-  if (authErr) {
-    return json({ error: authErr.message }, 500);
   }
 
   return json({ ok: true, login_id: newLoginId });
@@ -202,9 +240,13 @@ async function handleCreate(
   body: AdminUserBody,
   adminId: string
 ) {
-  const { login_id, first_name, last_name, role, password, phone, address, city, employee_id } = body;
-  if (!login_id || !first_name || !last_name || !role || !password) {
+  const { first_name, last_name, role, password, phone, address, city, employee_id } = body;
+  if (!first_name || !last_name || !role || !password) {
     return json({ error: "Champs obligatoires manquants" }, 400);
+  }
+  const login_id = normalizeLoginId(body.login_id);
+  if (!login_id) {
+    return json({ error: LOGIN_ID_ERROR }, 400);
   }
 
   // Check login_id uniqueness in profiles
@@ -225,7 +267,7 @@ async function handleCreate(
 
   // Create auth user with a synthetic email (login_id@app.local) so Supabase
   // handles password hashing. Email confirmation stays off.
-  const syntheticEmail = `${login_id.toLowerCase()}@mecapieces.local`;
+  const syntheticEmail = syntheticEmailFor(login_id);
   const { data: authData, error: authErr } = await client.auth.admin.createUser({
     email: syntheticEmail,
     password,
@@ -282,8 +324,50 @@ async function handleUpdate(
   if (role !== undefined) update.role = role;
   if (is_active !== undefined) update.is_active = is_active;
 
+  // An admin may correct a broken/invalid login_id here. It must stay in sync
+  // with the synthetic auth email, so update auth.users first (email_confirm:true
+  // to avoid a pending confirmation), then the profile.
+  let previousLoginId: string | null = null;
+  if (body.login_id !== undefined) {
+    const newLoginId = normalizeLoginId(body.login_id);
+    if (!newLoginId) return json({ error: LOGIN_ID_ERROR }, 400);
+
+    const { data: taken } = await client
+      .from("profiles")
+      .select("id")
+      .eq("login_id", newLoginId)
+      .neq("id", user_id)
+      .maybeSingle();
+    if (taken) return json({ error: "Cet identifiant de connexion existe déjà" }, 409);
+
+    const { data: current } = await client
+      .from("profiles")
+      .select("login_id")
+      .eq("id", user_id)
+      .maybeSingle();
+    previousLoginId = current?.login_id ?? null;
+
+    if (newLoginId !== previousLoginId) {
+      const { error: authErr } = await client.auth.admin.updateUserById(user_id, {
+        email: syntheticEmailFor(newLoginId),
+        email_confirm: true,
+      });
+      if (authErr) return json({ error: authErr.message }, 500);
+      update.login_id = newLoginId;
+    }
+  }
+
   const { error } = await client.from("profiles").update(update).eq("id", user_id);
-  if (error) return json({ error: error.message }, 500);
+  if (error) {
+    // Roll the auth email back so profiles and auth.users stay in sync.
+    if (update.login_id && previousLoginId) {
+      await client.auth.admin.updateUserById(user_id, {
+        email: syntheticEmailFor(previousLoginId),
+        email_confirm: true,
+      });
+    }
+    return json({ error: error.message }, 500);
+  }
   return json({ ok: true });
 }
 
@@ -294,7 +378,9 @@ async function handleResetPassword(
   const { user_id, password } = body;
   if (!user_id || !password) return json({ error: "user_id et password requis" }, 400);
 
-  const { error } = await client.auth.admin.updateUserById(user_id, { password });
+  // email_confirm:true also re-confirms the synthetic address, so this doubles as
+  // a recovery path for an account whose email was left unconfirmed.
+  const { error } = await client.auth.admin.updateUserById(user_id, { password, email_confirm: true });
   if (error) return json({ error: error.message }, 500);
 
   // Force password change on next login
@@ -324,9 +410,21 @@ async function handleDelete(
   const { user_id } = body;
   if (!user_id) return json({ error: "user_id requis" }, 400);
 
+  // Best-effort: clear the impersonation audit rows for this user so the delete
+  // is not blocked on installs where the cascade migration has not run yet.
+  await client.from("impersonation_log").delete().or(`admin_id.eq.${user_id},target_user_id.eq.${user_id}`);
+
   // profiles row cascades on auth.users delete
   const { error } = await client.auth.admin.deleteUser(user_id);
-  if (error) return json({ error: error.message }, 500);
+  if (error) {
+    const raw = error.message ?? "";
+    if (/foreign key|violates|constraint/i.test(raw)) {
+      return json({
+        error: "Impossible de supprimer ce compte : il est lié à des commandes, évaluations ou reversements. Désactivez-le plutôt (bouton Désactiver).",
+      }, 409);
+    }
+    return json({ error: raw || "Suppression échouée" }, 500);
+  }
   return json({ ok: true });
 }
 
@@ -349,7 +447,14 @@ async function handleImpersonate(
   if (!target.login_id) return json({ error: "Cet utilisateur n'a pas d'identifiant de connexion" }, 400);
   if (!target.is_active) return json({ error: "Ce compte est désactivé" }, 400);
 
-  const syntheticEmail = `${target.login_id}@mecapieces.local`;
+  const loginId = normalizeLoginId(target.login_id);
+  if (!loginId) {
+    return json({
+      error: "L'identifiant de connexion de cet utilisateur n'est pas valide. Corrigez-le via « Modifier » avant de vous connecter en tant que lui.",
+    }, 400);
+  }
+
+  const syntheticEmail = syntheticEmailFor(loginId);
   const { data: linkData, error: linkErr } = await client.auth.admin.generateLink({
     type: "magiclink",
     email: syntheticEmail,
@@ -360,5 +465,5 @@ async function handleImpersonate(
 
   await client.from("impersonation_log").insert({ admin_id: adminId, target_user_id: user_id });
 
-  return json({ token_hash: linkData.properties.hashed_token, login_id: target.login_id });
+  return json({ token_hash: linkData.properties.hashed_token, login_id: loginId });
 }

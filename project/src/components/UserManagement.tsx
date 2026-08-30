@@ -124,7 +124,15 @@ export default function UserManagement({ profiles, onRefresh }: UserManagementPr
       }));
 
       const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: result.token_hash, type: 'magiclink' });
-      if (otpErr) throw otpErr;
+      if (otpErr) {
+        // verifyOtp clears the current session before it fails, which would drop
+        // the admin onto the login screen. Put the admin session back.
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token,
+        });
+        throw otpErr;
+      }
       // From here the browser is authenticated as the target user; AuthContext's
       // onAuthStateChange listener picks it up and App.tsx re-renders their dashboard.
     } catch (e: unknown) {
@@ -525,6 +533,7 @@ function UserFormModal({ mode, profile, onClose, onDone }: {
         await callAdminFn({
           action: 'update',
           user_id: profile.id,
+          login_id: form.login_id.trim().toLowerCase(),
           first_name: form.first_name,
           last_name: form.last_name,
           employee_id: form.employee_id || null,
@@ -562,7 +571,10 @@ function UserFormModal({ mode, profile, onClose, onDone }: {
             </Field>
           </div>
           <Field label={t('userManagement.form.loginId')} required>
-            <input type="text" value={form.login_id} onChange={e => setForm(f => ({ ...f, login_id: e.target.value }))} required disabled={mode === 'edit'} className={inputCls} placeholder={t('userManagement.form.loginIdPlaceholder')} />
+            <input type="text" value={form.login_id} onChange={e => setForm(f => ({ ...f, login_id: e.target.value }))} required className={inputCls} placeholder={t('userManagement.form.loginIdPlaceholder')} />
+            {mode === 'edit' && (
+              <p className="text-xs text-slate-400 mt-1">{t('userManagement.form.loginIdEditHint')}</p>
+            )}
           </Field>
           {mode === 'create' && (
             <Field label={t('userManagement.form.tempPassword')} required>
