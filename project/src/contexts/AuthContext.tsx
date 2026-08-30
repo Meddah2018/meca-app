@@ -93,7 +93,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     updateAppBadge(0);
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch {
+      // The server-side logout call fails on a stale/invalid session (expired
+      // refresh token, or a session replaced by admin impersonation) and would
+      // otherwise leave the user stuck on their dashboard. Fall back to a
+      // purely local sign-out so logout always works.
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    }
+    // Clear context state directly in case onAuthStateChange('SIGNED_OUT')
+    // never fired (e.g. the server call above threw before removing the session).
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setGarageProfile(null);
+    setSupplierProfile(null);
+    setSupplierBrands([]);
   };
 
   const refreshProfile = async () => {
